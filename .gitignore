@@ -1,0 +1,27 @@
+# --- Not part of Mercato (keep out of the portfolio repo) ---
+/.metadata/
+
+# --- Build output ---
+**/target/
+
+# --- Local H2 file-mode databases ---
+**/data/
+
+# --- IDE: Eclipse / STS ---
+**/.settings/
+**/.project
+**/.classpath
+**/.springBeans
+**/.sts4-cache/
+
+# --- IDE: IntelliJ ---
+.idea/
+*.iml
+
+# --- IDE: VS Code ---
+.vscode/
+
+# --- Misc ---
+*.class
+*.log
+.DS_Store
