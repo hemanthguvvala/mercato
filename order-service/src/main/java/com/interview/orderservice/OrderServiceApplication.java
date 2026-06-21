@@ -3,6 +3,7 @@ package com.interview.orderservice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 import com.interview.orderservice.config.JwtProperties;
 
@@ -19,6 +20,7 @@ import com.interview.orderservice.config.JwtProperties;
  */
 @SpringBootApplication
 @EnableConfigurationProperties(JwtProperties.class)
+@EnableFeignClients
 public class OrderServiceApplication {
 
     public static void main(String[] args) {

@@ -17,22 +17,39 @@ public class OrderItem {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	private Long productId;
+
+	private String productName;
+
+	private double unitPrice;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "order_id")
 	private OrderEntity order;
-
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "product_id")
-	private ProductEntity product;
 
 	private int quantity;
 
 	protected OrderItem() {
 	}
 
-	public OrderItem(ProductEntity product, int quantity) {
-		this.product = product;
+	public OrderItem(Long productId, String productName, double unitPrice, int quantity) {
+		super();
+		this.productId = productId;
+		this.productName = productName;
+		this.unitPrice = unitPrice;
 		this.quantity = quantity;
+	}
+
+	public Long getProductId() {
+		return productId;
+	}
+
+	public String getProductName() {
+		return productName;
+	}
+
+	public double getUnitPrice() {
+		return unitPrice;
 	}
 
 	public OrderEntity getOrder() {
@@ -41,14 +58,6 @@ public class OrderItem {
 
 	public void setOrder(OrderEntity order) {
 		this.order = order;
-	}
-
-	public ProductEntity getProduct() {
-		return product;
-	}
-
-	public void setProduct(ProductEntity product) {
-		this.product = product;
 	}
 
 	public int getQuantity() {

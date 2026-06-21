@@ -1,4 +1,4 @@
-package com.interview.orderservice.entity;
+package com.interview.catalogservice.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

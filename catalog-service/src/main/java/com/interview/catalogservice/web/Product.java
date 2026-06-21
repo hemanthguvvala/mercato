@@ -1,4 +1,4 @@
-package com.interview.orderservice.web;
+package com.interview.catalogservice.web;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;

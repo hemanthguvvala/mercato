@@ -136,9 +136,9 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 ### Phase 1 — Become microservices (split + gateway + sync comms)
 - **New concepts:** service decomposition, DB-per-service, declarative HTTP, gateway, discovery, client-side LB.
 - **Build:**
-  - [ ] Decide repo layout: **multi-module Maven** (one repo, easy to run) vs separate repos. *(Recommended: multi-module to start.)*
-  - [ ] Extract **Catalog service** (its own DB) from order-service.
-  - [ ] Order → Catalog via **Feign**.
+  - [x] Repo layout: **separate standalone projects** for now (parent reactor pom at Phase 9). ✅ 2026-06-21
+  - [x] Extract **Catalog service** (its own DB) from order-service. ✅ 2026-06-21
+  - [x] Order → Catalog via **Feign** (+ `OrderItem` snapshot; productId is a plain column, no cross-service FK). ✅ 2026-06-21
   - [ ] **Eureka** service registry (learn discovery + LB; later replaced by K8s DNS).
   - [ ] **Spring Cloud Gateway** in front; route `/orders`, `/catalog`.
 - **Why:** this is the exact moment a monolith becomes a distributed system; the gateway gives one entry point and one place for edge concerns.
@@ -234,7 +234,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 | Phase | Title | Status | Notes |
 |---|---|---|---|
 | 0 | Harden the seed | ☑ done | JWT fix, H2 file-mode, Flyway, Actuator, @ConfigurationProperties, ProblemDetail (2026-06-21). Dockerfile deferred to Phase 7. |
-| 1 | Microservices split + gateway | ☐ | |
+| 1 | Microservices split + gateway | ◧ in progress | Catalog extracted + Order→Catalog via Feign working (2026-06-21); Eureka + Gateway still to do |
 | 2 | Caching + resilience | ☐ | |
 | 3 | Event-driven + Kafka 🏁 | ☐ | |
 | 4 | Saga + outbox + threading | ☐ | |

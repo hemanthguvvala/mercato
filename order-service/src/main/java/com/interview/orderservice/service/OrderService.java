@@ -5,23 +5,25 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.interview.orderservice.client.CatalogClient;
+import com.interview.orderservice.client.CatalogProduct;
 import com.interview.orderservice.entity.OrderEntity;
 import com.interview.orderservice.entity.OrderItem;
-import com.interview.orderservice.entity.ProductEntity;
 import com.interview.orderservice.repository.OrderRepository;
-import com.interview.orderservice.repository.ProductRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderDtos.OrderResponse;
 import com.interview.orderservice.web.ResourceNotFoundException;
+
+import feign.FeignException;
 
 @Service
 public class OrderService {
 
 	private final OrderRepository orderRepository;
-	private final ProductRepository productRepository;
+	private final CatalogClient catalogClient;
 
-	public OrderService(OrderRepository orderRepository, ProductRepository productRepository) {
-		this.productRepository = productRepository;
+	public OrderService(OrderRepository orderRepository, CatalogClient catalogClient) {
+		this.catalogClient = catalogClient;
 		this.orderRepository = orderRepository;
 	}
 
@@ -29,9 +31,13 @@ public class OrderService {
 	public OrderResponse create(CreateOrderRequest request) {
 		OrderEntity order = new OrderEntity(request.customerName());
 		for (CreateOrderRequest.Line line : request.lines()) {
-			ProductEntity product = productRepository.findById(line.productId())
-					.orElseThrow(() -> new ResourceNotFoundException("Product Not Found : - " + line.productId()));
-			order.addItem(new OrderItem(product, line.quantity()));
+			CatalogProduct product;
+			try {
+				product = catalogClient.getProduct(line.productId());
+			} catch (FeignException.NotFound e) {
+				throw new ResourceNotFoundException("Product Not Found : - " + line.productId());
+			}
+			order.addItem(new OrderItem(product.id(), product.name(), product.price(), line.quantity()));
 		}
 		return toResponse(orderRepository.save(order));
 	}
@@ -48,8 +54,8 @@ public class OrderService {
 	}
 
 	private OrderResponse toResponse(OrderEntity o) {
-		List<OrderResponse.Item> items = o.getItems().stream()
-				.map(i -> new OrderResponse.Item(i.getProduct().getId(), i.getProduct().getName(), i.getQuantity()))
+		List<OrderResponse.Item> items = o.getItems().stream().map(
+				i -> new OrderResponse.Item(i.getProductId(), i.getProductName(), i.getUnitPrice(), i.getQuantity()))
 				.toList();
 		return new OrderResponse(o.getId(), o.getCustomerName(), items);
 	}

@@ -14,12 +14,11 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
 	@Query("""
 			select distinct o from OrderEntity o
-			left join fetch o.items i
-			left join fetch i.product
+			left join fetch o.items 
 			""")
 	List<OrderEntity> findAllWithItems();
 	
 	@Override
-	@EntityGraph(attributePaths = {"items", "items.product"})
+	@EntityGraph(attributePaths = {"items"})
 	List<OrderEntity> findAll();
 }

@@ -20,7 +20,7 @@ public class OrderDtos {
 	}
 
 	public record OrderResponse(Long id, String customerName, List<Item> items) {
-		public record Item(Long productId, String productName, int quantity) {
+		public record Item(Long productId, String productName, double unitPrice, int quantity) {
 		}
 	}
 }
