@@ -2,11 +2,21 @@ package com.interview.apigateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
+import org.springframework.context.annotation.Bean;
 
-@SpringBootApplication // no special @Enable needed — gateway + discovery are auto-configured from the classpath
+import reactor.core.publisher.Mono;
+
+@SpringBootApplication
 public class ApiGatewayApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApiGatewayApplication.class, args);
+	}
+
+	@Bean
+	public KeyResolver userKeyResolver() {
+		return exchange -> Mono.justOrEmpty(exchange.getRequest().getHeaders().getFirst("X-User"))
+				.defaultIfEmpty("anonymous");
 	}
 }
