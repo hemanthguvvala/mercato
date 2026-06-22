@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-	
+
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
@@ -44,4 +44,9 @@ public class GlobalExceptionHandler {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
 
+	@ExceptionHandler(CatalogUnavailableException.class)
+	public ProblemDetail handlCatalogUnavailable(CatalogUnavailableException ex) {
+		log.info("Catalog unavailble - {} ", ex);
+		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+	}
 }
