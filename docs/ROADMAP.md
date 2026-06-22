@@ -147,7 +147,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 ### Phase 2 — Caching + Resilience
 - **New concepts:** cache-aside + invalidation, the four Resilience4j patterns, where each applies.
 - **Build:**
-  - [ ] **Redis** cache-aside on Catalog reads; **evict on write** (the hard part).
+  - [x] **Redis** cache-aside on Catalog reads (`@Cacheable` on `findById`), **evict on write** (`@CacheEvict` on update/delete). Learned in-memory first, then swapped provider to **Upstash Redis** (free tier, Mumbai) with **zero code change** — only deps/config. TTL 60s + JSON value serialization; creds externalized via env/VM args (`${REDIS_*}`). ✅ 2026-06-22
   - [x] **Resilience4j** on the order→catalog call: circuit breaker + retry + bulkhead + rate limiter, all on `CatalogGateway.getProduct` (a separate bean — proxy/self-invocation rule). Fallback maps failures → domain exceptions (404 vs 503). ✅ 2026-06-22
   - [ ] Redis-backed **rate limiting at the gateway**.
 - **Why:** caching cuts DB load on read-heavy data; resilience stops one slow/broken service from taking down its callers. Invalidation is where correctness lives.
@@ -235,7 +235,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 |---|---|---|---|
 | 0 | Harden the seed | ☑ done | JWT fix, H2 file-mode, Flyway, Actuator, @ConfigurationProperties, ProblemDetail (2026-06-21). Dockerfile deferred to Phase 7. |
 | 1 | Microservices split + gateway | ◧ in progress | Catalog extracted + Order→Catalog via Feign (2026-06-21); **Eureka discovery done** — name-based Feign, both services UP (2026-06-22); **Gateway** is the last piece |
-| 2 | Caching + resilience | ◧ in progress | Resilience4j done (CB+retry+bulkhead+rate-limiter on order→catalog, 2026-06-22); Redis caching + gateway rate-limit remain |
+| 2 | Caching + resilience | ◧ in progress | Resilience4j done + **Redis cache-aside done** (Upstash, TTL, evict-on-write, 2026-06-22); only **gateway rate-limit** remains |
 | 3 | Event-driven + Kafka 🏁 | ☐ | |
 | 4 | Saga + outbox + threading | ☐ | |
 | 5 | gRPC + GraphQL + WebClient | ☐ | |
@@ -261,6 +261,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 - _2026-06-22 — Eureka now, or skip to K8s DNS?_ — **Eureka now.** Discovery is a core concept I want to feel hands-on (registration, heartbeats, client-side LB); K8s DNS at Phase 7 will *replace* it. Built `discovery-service` (Eureka server) before the gateway so the gateway is born using discovery (no rework).
 - _2026-06-22 — Eureka self-preservation banner in dev?_ — **Disabled (`enable-self-preservation=false`) in dev only.** On a 2-instance laptop the heartbeat count sits below threshold and trips the "EMERGENCY" banner falsely; disabling lets dead services get evicted promptly. **Leave it ON (default) in prod** — there it guards against mass eviction during a network partition.
 - _2026-06-22 — Where do resilience patterns live?_ — **Caller-side, on a separate `CatalogGateway` bean** wrapping the Feign client. Why a separate bean: Resilience4j works via Spring AOP proxies, so an `@CircuitBreaker` method called from the *same* bean (self-invocation) is bypassed. Why caller-side: a circuit breaker protects the *caller* from a dead dependency — there's no code running in catalog to "break" when catalog is down. (Server-side resilience exists too — rate limiter/bulkhead to protect a service from overload — but breaker/retry/fallback for "my dependency is down" is the caller's job.)
+- _2026-06-22 — Caching approach & Redis provider_ — Learn Spring's cache abstraction (`@Cacheable`/`@CacheEvict`) against the **in-memory** cache first, then swap the *provider* to **Upstash Redis** (free, no card, Mumbai region) — proves the code is provider-agnostic (zero change). Chose **cache-aside + evict-on-write** (canonical, simplest-correct) over `@CachePut`; added a **60s TTL** as invalidation insurance and **JSON serialization** so values are human-readable in the console. Set Upstash **Eviction ON** (it's a cache — drop LRU when full, not reject writes). Creds externalized via `${REDIS_*}` (env var in prod / VM args locally) — never committed.
 - _2026-06-22 — Resilience4j gotchas learned_ — (1) `minimumNumberOfCalls` defaults to **100**, so a breaker never opens in a small test until you lower it. (2) `ignore-exceptions` must exclude `FeignException$NotFound` (a 404 is a *correct* answer, not an outage — must not trip the breaker) and retry must also ignore `CallNotPermittedException` (don't retry an already-open breaker). (3) Aspect order is fixed: `Retry(CircuitBreaker(RateLimiter(Bulkhead(call))))`. (4) Bulkhead = concurrency cap; RateLimiter = calls-per-time cap — different failure modes. (5) Config without the matching `@Annotation` is inert.
 
 ---

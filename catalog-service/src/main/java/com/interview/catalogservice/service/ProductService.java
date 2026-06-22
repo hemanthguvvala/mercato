@@ -3,6 +3,8 @@ package com.interview.catalogservice.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -20,7 +22,8 @@ public class ProductService {
 	public ProductService(ProductRepository productRepository) {
 		this.repository = productRepository;
 	}
-
+	
+	@Cacheable(value = "products", key = "#id")
 	public Optional<Product> findById(Long id) {
 		return repository.findById(id).map(this::toDto);
 	}
@@ -34,11 +37,13 @@ public class ProductService {
 		return toDto(saved);
 	}
 
+	@CacheEvict(value = "products", key = "#id")
 	public Product update(Long id, Product request) {
 		ProductEntity entity = new ProductEntity(id, request.name(), request.price(), request.version());
 		return toDto(repository.save(entity));
 	}
 
+	@CacheEvict(value = "products", key = "#id")
 	public void delete(Long id) {
 		repository.deleteById(id);
 	}
