@@ -139,8 +139,8 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
   - [x] Repo layout: **separate standalone projects** for now (parent reactor pom at Phase 9). ✅ 2026-06-21
   - [x] Extract **Catalog service** (its own DB) from order-service. ✅ 2026-06-21
   - [x] Order → Catalog via **Feign** (+ `OrderItem` snapshot; productId is a plain column, no cross-service FK). ✅ 2026-06-21
-  - [ ] **Eureka** service registry (learn discovery + LB; later replaced by K8s DNS).
-  - [ ] **Spring Cloud Gateway** in front; route `/orders`, `/catalog`.
+  - [x] **Eureka** service registry (`discovery-service`, port 8761). catalog + order register; Feign `CatalogClient` switched from hardcoded `url` → name-based discovery + client-side LB. Self-preservation disabled for dev. ✅ 2026-06-22
+  - [ ] **Spring Cloud Gateway** in front; route `/orders`, `/products`.
 - **Why:** this is the exact moment a monolith becomes a distributed system; the gateway gives one entry point and one place for edge concerns.
 - **DoD:** two services + gateway run together; an order created through the gateway fetches product data from Catalog over Feign.
 
@@ -234,7 +234,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 | Phase | Title | Status | Notes |
 |---|---|---|---|
 | 0 | Harden the seed | ☑ done | JWT fix, H2 file-mode, Flyway, Actuator, @ConfigurationProperties, ProblemDetail (2026-06-21). Dockerfile deferred to Phase 7. |
-| 1 | Microservices split + gateway | ◧ in progress | Catalog extracted + Order→Catalog via Feign working (2026-06-21); Eureka + Gateway still to do |
+| 1 | Microservices split + gateway | ◧ in progress | Catalog extracted + Order→Catalog via Feign (2026-06-21); **Eureka discovery done** — name-based Feign, both services UP (2026-06-22); **Gateway** is the last piece |
 | 2 | Caching + resilience | ☐ | |
 | 3 | Event-driven + Kafka 🏁 | ☐ | |
 | 4 | Saga + outbox + threading | ☐ | |
@@ -258,13 +258,15 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 - _2026-06-21 — Real DB?_ — **Postgres** (H2 was demo-only) — persistence + realistic behavior.
 - _2026-06-21 — Where does it run? (cost = $0 hard constraint)_ — **Local Spring apps (Maven); free infra only.** DB = **H2 file-mode** locally for now (zero install/admin/cost); swapping to free **Neon** Postgres is a ~3-line change if wanted for the portfolio later. Redis/Kafka (Phases 2/3) → **free cloud tiers** (Upstash / Redis Cloud — no credit card) since H2 can't replace them and there's no local Docker. Kubernetes (Phase 7) → free/cloud cluster. ⚠️ never commit any cloud credential to the public repo — externalize via env vars.
 - _2026-06-21 — Repo layout (revised)_ — **Separate standalone Spring Boot projects** per service for now (each its own port), NOT a Maven reactor yet — avoids Eclipse re-import friction and keeps the working order-service untouched. Wrap in a parent reactor pom at Phase 9 for portfolio polish.
+- _2026-06-22 — Eureka now, or skip to K8s DNS?_ — **Eureka now.** Discovery is a core concept I want to feel hands-on (registration, heartbeats, client-side LB); K8s DNS at Phase 7 will *replace* it. Built `discovery-service` (Eureka server) before the gateway so the gateway is born using discovery (no rework).
+- _2026-06-22 — Eureka self-preservation banner in dev?_ — **Disabled (`enable-self-preservation=false`) in dev only.** On a 2-instance laptop the heartbeat count sits below threshold and trips the "EMERGENCY" banner falsely; disabling lets dead services get evicted promptly. **Leave it ON (default) in prod** — there it guards against mass eviction during a network partition.
 
 ---
 
 ## 8. Open Questions (park them here, we answer together)
 
 - [ ] Multi-module repo vs separate repos for the services? (leaning multi-module)
-- [ ] Eureka now, or skip straight to K8s DNS for discovery?
+- [x] Eureka now, or skip straight to K8s DNS for discovery? → **Eureka now** (see Decisions Log 2026-06-22).
 - [ ] _add yours..._
 
 ---
