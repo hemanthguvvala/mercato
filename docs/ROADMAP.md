@@ -166,7 +166,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 ### Phase 4 — Distributed transactions: Saga + Inventory + Payment + Threading
 - **New concepts:** saga orchestration vs choreography, transactional outbox, idempotency, distributed locking, optimistic vs pessimistic locking, race conditions, virtual threads.
 - **Build:**
-  - [ ] Add **Inventory** + **Payment** services (own DBs).
+  - [◧] Add **Inventory** + **Payment** services (own DBs). — **inventory-service done** (port 8082, own H2+Flyway, Eureka; `InventoryItem` w/ `@Version`; `reserve` no-oversell→409, `release` compensates; verified). Payment next. ✅ inventory 2026-06-22 (commit 0092bbf)
   - [ ] **Saga (orchestration)** for order placement: reserve stock → charge payment → confirm; **compensations** on failure (release stock / refund).
   - [ ] **Transactional Outbox** so DB-commit and event-publish can't diverge.
   - [ ] **Idempotency keys** (Redis) on consumers (handle duplicate events).
@@ -237,7 +237,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 | 1 | Microservices split + gateway | ☑ done | Catalog extracted + Order→Catalog via Feign (2026-06-21); Eureka discovery (name-based Feign); Spring Cloud Gateway routing (2026-06-22) |
 | 2 | Caching + resilience | ☑ done | Resilience4j (CB+retry+bulkhead+RL) + Redis cache-aside (Upstash, TTL, evict-on-write) + **gateway rate-limiter** (token bucket, verified 429s) — all 2026-06-22 |
 | 3 | Event-driven + Kafka 🏁 | ☑ done | order publishes `OrderPlaced` → Kafka (KRaft, local) → notification-service `@KafkaListener` consumes; verified live (2026-06-22). Analytics fan-out optional. **Portfolio milestone reached.** |
-| 4 | Saga + outbox + threading | ☐ | |
+| 4 | Saga + outbox + threading | ◧ in progress | inventory-service (reserve/release, @Version, 409 on oversell) done + verified (2026-06-22); next: Payment service, then saga orchestrator |
 | 5 | gRPC + GraphQL + WebClient | ☐ | |
 | 6 | Observability | ☐ | |
 | 7 | Docker + Kubernetes | ☐ | |
