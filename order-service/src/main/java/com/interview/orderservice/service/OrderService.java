@@ -3,10 +3,11 @@ package com.interview.orderservice.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.orderservice.client.catalog.CatalogGateway;
 import com.interview.orderservice.client.catalog.CatalogProduct;
 import com.interview.orderservice.client.inventory.InventoryClient;
@@ -15,8 +16,10 @@ import com.interview.orderservice.client.payment.ChargeRequest;
 import com.interview.orderservice.client.payment.PaymentClient;
 import com.interview.orderservice.entity.OrderEntity;
 import com.interview.orderservice.entity.OrderItem;
+import com.interview.orderservice.entity.OutboxEvent;
 import com.interview.orderservice.event.OrderPlaced;
 import com.interview.orderservice.repository.OrderRepository;
+import com.interview.orderservice.repository.OutboxRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderDtos.OrderResponse;
 import com.interview.orderservice.web.OrderFailedException;
@@ -28,17 +31,19 @@ public class OrderService {
 
 	private final OrderRepository orderRepository;
 	private final CatalogGateway catalogGateway;
-	private final KafkaTemplate<String, OrderPlaced> kafkaTemplate;
+	private final OutboxRepository outboxRepository;
+	private final ObjectMapper objectMapper;
 	private final PaymentClient paymentClient;
 	private final InventoryClient inventoryClient;
 
 	public OrderService(OrderRepository orderRepository, CatalogGateway catalogGateway,
-			KafkaTemplate<String, OrderPlaced> kafkaTemplate,
+			OutboxRepository outboxRepository, ObjectMapper objectMapper,
 			PaymentClient paymentGateway, InventoryClient inventoryGateWay) {
 		this.catalogGateway = catalogGateway;
 		this.orderRepository = orderRepository;
-		this.kafkaTemplate = kafkaTemplate;
+		this.outboxRepository = outboxRepository;
 		this.paymentClient = paymentGateway;
+		this.objectMapper = objectMapper;
 		this.inventoryClient = inventoryGateWay;
 	}
 
@@ -72,7 +77,13 @@ public class OrderService {
 
 		OrderPlaced event = new OrderPlaced(savedOrder.getId(), savedOrder.getCustomerName(), total,
 				savedOrder.getItems().size());
-		kafkaTemplate.send("order-events", event);
+		try {
+			String payload = objectMapper.writeValueAsString(event);
+			outboxRepository.save(new OutboxEvent(savedOrder.getId(), "OrderPlaced", payload));
+		} catch (JsonProcessingException e) {
+			throw new RuntimeException("Failed to serialize OrderPlaced",e);
+		}
+		
 		return toResponse(savedOrder);
 	}
 
