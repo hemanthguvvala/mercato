@@ -1,4 +1,4 @@
-package com.interview.orderservice.client;
+package com.interview.orderservice.client.catalog;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,4 @@
-package com.interview.orderservice.client;
+package com.interview.orderservice.client.catalog;
 
 import org.springframework.stereotype.Component;
 

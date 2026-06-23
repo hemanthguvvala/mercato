@@ -45,8 +45,14 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(CatalogUnavailableException.class)
-	public ProblemDetail handlCatalogUnavailable(CatalogUnavailableException ex) {
+	public ProblemDetail handleCatalogUnavailable(CatalogUnavailableException ex) {
 		log.info("Catalog unavailble - {} ", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+	}
+	
+	@ExceptionHandler(OrderFailedException.class)
+	public ProblemDetail handleOrderFailed(OrderFailedException ex) {
+		log.info("Catalog unavailble - {} ", ex);
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
 	}
 }
