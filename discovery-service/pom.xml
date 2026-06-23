@@ -36,7 +36,8 @@
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- This single starter turns this Boot process INTO a Eureka registry server -->
+		<!-- This single starter turns this Boot process INTO a Eureka registry
+		server -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
@@ -45,7 +46,8 @@
 
 	<build>
 		<plugins>
-			<!-- Lets us run `mvn spring-boot:run` and build an executable fat jar -->
+			<!-- Lets us run `mvn spring-boot:run` and build an executable fat
+			jar -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

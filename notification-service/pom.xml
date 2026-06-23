@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -23,7 +22,8 @@
 	</properties>
 
 	<dependencies>
-		<!-- Plain Spring context (no web needed — this app's job is to consume Kafka).
+		<!-- Plain Spring context (no web needed — this app's job is to consume
+		Kafka).
 		     The Kafka listener container runs a non-daemon thread that keeps the app alive. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -35,7 +35,8 @@
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
 
-		<!-- Jackson (jackson-databind). spring-kafka's JsonDeserializer needs it, but
+		<!-- Jackson (jackson-databind). spring-kafka's JsonDeserializer needs
+		it, but
 		     declares it optional — and a non-web app has no other source for it. The
 		     web starter would pull Jackson in transitively; we're not web, so add it. -->
 		<dependency>
