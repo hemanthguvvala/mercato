@@ -166,7 +166,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 ### Phase 4 — Distributed transactions: Saga + Inventory + Payment + Threading
 - **New concepts:** saga orchestration vs choreography, transactional outbox, idempotency, distributed locking, optimistic vs pessimistic locking, race conditions, virtual threads.
 - **Build:**
-  - [◧] Add **Inventory** + **Payment** services (own DBs). — **inventory-service done** (port 8082, own H2+Flyway, Eureka; `InventoryItem` w/ `@Version`; `reserve` no-oversell→409, `release` compensates; verified). Payment next. ✅ inventory 2026-06-22 (commit 0092bbf)
+  - [x] Add **Inventory** + **Payment** services. **inventory-service** (port 8082, own H2+Flyway, Eureka; `InventoryItem` w/ `@Version`; `reserve` no-oversell→409, `release` compensates) ✅ 2026-06-22 (commit 0092bbf). **payment-service** (port 8083, stateless gateway sim, Eureka; `charge` declines >limit→402, `refund` compensates) ✅ 2026-06-23 (commit 879e4ef).
   - [ ] **Saga (orchestration)** for order placement: reserve stock → charge payment → confirm; **compensations** on failure (release stock / refund).
   - [ ] **Transactional Outbox** so DB-commit and event-publish can't diverge.
   - [ ] **Idempotency keys** (Redis) on consumers (handle duplicate events).
