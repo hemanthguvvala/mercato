@@ -167,7 +167,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 - **New concepts:** saga orchestration vs choreography, transactional outbox, idempotency, distributed locking, optimistic vs pessimistic locking, race conditions, virtual threads.
 - **Build:**
   - [x] Add **Inventory** + **Payment** services. **inventory-service** (port 8082, own H2+Flyway, Eureka; `InventoryItem` w/ `@Version`; `reserve` no-oversell→409, `release` compensates) ✅ 2026-06-22 (commit 0092bbf). **payment-service** (port 8083, stateless gateway sim, Eureka; `charge` declines >limit→402, `refund` compensates) ✅ 2026-06-23 (commit 879e4ef).
-  - [ ] **Saga (orchestration)** for order placement: reserve stock → charge payment → confirm; **compensations** on failure (release stock / refund).
+  - [x] **Saga (orchestration)** for order placement: `OrderService.create()` runs reserve stock → charge payment → confirm; on a Feign failure it **compensates** (releases every reservation that succeeded) and throws `OrderFailedException`→409. Local `@Transactional` rolls back the order INSERT; the remote reservation is undone explicitly via `release()`. Verified live across 6 services (normal→201; >limit→402 decline→stock released→rolled back→409). ✅ 2026-06-23 (commit c931987)
   - [ ] **Transactional Outbox** so DB-commit and event-publish can't diverge.
   - [ ] **Idempotency keys** (Redis) on consumers (handle duplicate events).
   - [ ] **Distributed lock** (Redisson) on stock reservation → **concurrency/threading module**: reproduce a race condition with concurrent orders, then fix it with the lock; compare with optimistic (`@Version`) vs pessimistic DB locking; try `CompletableFuture` fan-out and **virtual threads**.
@@ -237,7 +237,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 | 1 | Microservices split + gateway | ☑ done | Catalog extracted + Order→Catalog via Feign (2026-06-21); Eureka discovery (name-based Feign); Spring Cloud Gateway routing (2026-06-22) |
 | 2 | Caching + resilience | ☑ done | Resilience4j (CB+retry+bulkhead+RL) + Redis cache-aside (Upstash, TTL, evict-on-write) + **gateway rate-limiter** (token bucket, verified 429s) — all 2026-06-22 |
 | 3 | Event-driven + Kafka 🏁 | ☑ done | order publishes `OrderPlaced` → Kafka (KRaft, local) → notification-service `@KafkaListener` consumes; verified live (2026-06-22). Analytics fan-out optional. **Portfolio milestone reached.** |
-| 4 | Saga + outbox + threading | ◧ in progress | inventory-service (reserve/release, @Version, 409 on oversell) done + verified (2026-06-22); next: Payment service, then saga orchestrator |
+| 4 | Saga + outbox + threading | ◧ in progress | inventory + payment services done; **saga orchestrator done + verified live across 6 services** (2026-06-23, c931987). Next: transactional outbox → idempotency → distributed lock/concurrency |
 | 5 | gRPC + GraphQL + WebClient | ☐ | |
 | 6 | Observability | ☐ | |
 | 7 | Docker + Kubernetes | ☐ | |
