@@ -29,6 +29,19 @@ public class InventoryService {
 		item.setAvailableQuantity(item.getAvailableQuantity() - quantity);
 		inventoryRepository.save(item);
 	}
+	
+	@Transactional
+	public void reservePessimistic(Long productId, int quantity) {
+		InventoryItem item = inventoryRepository.findByProductIdForUpdate(productId)
+				.orElseThrow(() -> new IllegalStateException("No invetory for prodcut " + productId));
+		if (item.getAvailableQuantity() < quantity) {
+			throw new InSufficientStockException("Insufficient stock for product " + productId + ": have "
+					+ item.getAvailableQuantity() + ", need " + quantity);
+		}
+
+		item.setAvailableQuantity(item.getAvailableQuantity() - quantity);
+		inventoryRepository.save(item);
+	}
 
 	@Transactional
 	public void release(Long productId, int quantity) {
