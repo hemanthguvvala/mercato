@@ -119,6 +119,12 @@
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
 		</dependency>
 
+		<!-- Exports spans to Zipkin (default http://localhost:9411) (Phase 6) -->
+		<dependency>
+			<groupId>io.zipkin.reporter2</groupId>
+			<artifactId>zipkin-reporter-brave</artifactId>
+		</dependency>
+
 		<!-- Step 6/JWT: jjwt — create & verify JSON Web Tokens -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
