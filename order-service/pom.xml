@@ -46,6 +46,13 @@
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
 		</dependency>
 
+		<!-- WebClient (reactive HTTP client) — for the Order -> Payment call (Phase 5).
+		     App stays a servlet/MVC app; we just use WebClient as the HTTP client. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
 		<!-- Bean Validation (@Valid, @NotBlank, ...) — used in the MVC
 		validation sub-topic -->
 		<dependency>

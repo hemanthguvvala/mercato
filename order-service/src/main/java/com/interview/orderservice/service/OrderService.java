@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +14,7 @@ import com.interview.orderservice.client.catalog.CatalogProduct;
 import com.interview.orderservice.client.inventory.InventoryClient;
 import com.interview.orderservice.client.inventory.StockRequest;
 import com.interview.orderservice.client.payment.ChargeRequest;
-import com.interview.orderservice.client.payment.PaymentClient;
+import com.interview.orderservice.client.payment.PaymentWebClient;
 import com.interview.orderservice.entity.OrderEntity;
 import com.interview.orderservice.entity.OrderItem;
 import com.interview.orderservice.entity.OutboxEvent;
@@ -33,16 +34,16 @@ public class OrderService {
 	private final CatalogGateway catalogGateway;
 	private final OutboxRepository outboxRepository;
 	private final ObjectMapper objectMapper;
-	private final PaymentClient paymentClient;
+	private final PaymentWebClient paymentWebClient;
 	private final InventoryClient inventoryClient;
 
 	public OrderService(OrderRepository orderRepository, CatalogGateway catalogGateway,
 			OutboxRepository outboxRepository, ObjectMapper objectMapper,
-			PaymentClient paymentGateway, InventoryClient inventoryGateWay) {
+			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay) {
 		this.catalogGateway = catalogGateway;
 		this.orderRepository = orderRepository;
 		this.outboxRepository = outboxRepository;
-		this.paymentClient = paymentGateway;
+		this.paymentWebClient = paymentWebClient;
 		this.objectMapper = objectMapper;
 		this.inventoryClient = inventoryGateWay;
 	}
@@ -65,8 +66,8 @@ public class OrderService {
 				inventoryClient.reserve(req);
 				reserved.add(req);
 			}
-			paymentClient.charge(new ChargeRequest(savedOrder.getId(), total));
-		} catch (FeignException ex) {
+			paymentWebClient.charge(new ChargeRequest(savedOrder.getId(), total));
+		} catch (FeignException | WebClientResponseException ex) {
 
 			for (StockRequest r : reserved) {
 				inventoryClient.release(r);
