@@ -186,9 +186,9 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 ### Phase 6 — Observability (the three pillars)
 - **New concepts:** metrics vs traces vs logs, distributed tracing, correlation IDs.
 - **Build:**
-  - [ ] **Metrics:** Micrometer → **Prometheus** → **Grafana** dashboard.
-  - [ ] **Tracing:** Micrometer Tracing + **OpenTelemetry** → **Tempo/Zipkin**; trace one order across all services.
-  - [ ] **Logs:** structured JSON + **MDC correlation id** → Loki (optional ELK).
+  - [~] **Metrics:** Micrometer → **Prometheus** — `micrometer-registry-prometheus` exposes `/actuator/prometheus` on order-service (req rates/latencies, JVM, Hikari pool). Grafana dashboard deferred (needs Prometheus+Grafana infra). ✅ instrumentation 2026-06-25
+  - [~] **Tracing:** Micrometer Tracing (Brave) + `zipkin-reporter-brave` across order/catalog/inventory/payment; `sampling.probability=1.0`. Instrumentation done + compiles; **live view pending** (run Zipkin standalone jar on :9411 + the stack → one trace order→catalog→inventory→payment). 2026-06-25
+  - [x] **Logs — correlation id:** the tracing bridge auto-adds `[app,traceId,spanId]` to every log line, so logs are correlated and the same traceId follows a request across services. Structured-JSON + Loki deferred (optional). ✅ 2026-06-25
 - **Why:** in a distributed system you can't debug by reading one log file; you need a trace that follows the request and metrics that show health.
 - **DoD:** one Grafana dashboard; clicking a trace shows the order's path gateway→order→inventory→payment with timings.
 
@@ -239,7 +239,7 @@ Each phase template: **Goal → New concepts → Build → Why/talking points �
 | 3 | Event-driven + Kafka 🏁 | ☑ done | order publishes `OrderPlaced` → Kafka (KRaft, local) → notification-service `@KafkaListener` consumes; verified live (2026-06-22). Analytics fan-out optional. **Portfolio milestone reached.** |
 | 4 | Saga + outbox + threading | ☑ done | DoD met: saga compensation (c931987) + outbox (6daaf12) + idempotency (8a609ea) + concurrency optimistic-vs-pessimistic, no oversell (36486ef). Redisson distributed lock + virtual threads deferred (optional — DB lock already covers shared-DB oversell). 2026-06-23/24 |
 | 5 | gRPC + GraphQL + WebClient | ◧ in progress | **WebClient** (Order→Payment) ✅ + **GraphQL** (Catalog, @GraphQlTest green) ✅ — 2026-06-25; **gRPC** server demo built on :9090 (client/saga-wiring deferred) |
-| 6 | Observability | ☐ | |
+| 6 | Observability | ◧ in progress | metrics (`/actuator/prometheus`) + correlated logs (traceId in every line) done; Zipkin tracing instrumented across 4 services, **live-view pending** (2026-06-25). Grafana / Loki / JSON-logs deferred (infra) |
 | 7 | Docker + Kubernetes | ☐ | |
 | 8 | Angular frontend | ☐ | |
 | 9 | Portfolio polish | ☐ | |
