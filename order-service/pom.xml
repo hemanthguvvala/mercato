@@ -106,6 +106,19 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
+		<!-- Micrometer Prometheus registry: exposes /actuator/prometheus in scrape format (Phase 6) -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Micrometer Tracing (Brave bridge): auto-adds [app,traceId,spanId] to every log line (Phase 6) -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-brave</artifactId>
+		</dependency>
+
 		<!-- Step 6/JWT: jjwt — create & verify JSON Web Tokens -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
