@@ -50,7 +50,8 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Distributed tracing: continue the trace + export spans to Zipkin (Phase 6) -->
+		<!-- Distributed tracing: continue the trace + export spans to Zipkin
+		(Phase 6) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
@@ -59,7 +60,10 @@
 			<groupId>io.zipkin.reporter2</groupId>
 			<artifactId>zipkin-reporter-brave</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
 		<!-- Flyway — versioned schema migrations (we'll add V1 when Product
 		moves in) -->
 		<dependency>
@@ -85,7 +89,7 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
-	<!--	<dependency> 
+		<!--	<dependency> 
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-cache</artifactId>
 		</dependency> -->

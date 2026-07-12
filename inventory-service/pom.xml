@@ -16,7 +16,8 @@
 	<artifactId>inventory-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>inventory-service</name>
-	<description>Inventory service — owns stock; reserves/releases it for the order saga (Mercato)</description>
+	<description>Inventory service — owns stock; reserves/releases it for the
+		order saga (Mercato)</description>
 
 	<properties>
 		<java.version>17</java.version>
@@ -30,6 +31,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 
 		<!-- Bean Validation -->
@@ -50,7 +55,8 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Distributed tracing: continue the trace + export spans to Zipkin (Phase 6) -->
+		<!-- Distributed tracing: continue the trace + export spans to Zipkin
+		(Phase 6) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
@@ -79,14 +85,16 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
-		<!-- gRPC server (Spring Boot integration): @GrpcService + auto-started gRPC server -->
+		<!-- gRPC server (Spring Boot integration): @GrpcService + auto-started
+		gRPC server -->
 		<dependency>
 			<groupId>net.devh</groupId>
 			<artifactId>grpc-server-spring-boot-starter</artifactId>
 			<version>3.1.0.RELEASE</version>
 		</dependency>
 
-		<!-- Provides javax.annotation.Generated, referenced by grpc-generated code (removed from JDK 11+) -->
+		<!-- Provides javax.annotation.Generated, referenced by grpc-generated
+		code (removed from JDK 11+) -->
 		<dependency>
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
@@ -109,7 +117,8 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-			<!-- Align ALL grpc-* artifacts (incl. net.devh's transitive ones) to one version -->
+			<!-- Align ALL grpc-* artifacts (incl. net.devh's transitive ones)
+			to one version -->
 			<dependency>
 				<groupId>io.grpc</groupId>
 				<artifactId>grpc-bom</artifactId>
@@ -126,7 +135,8 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<!-- ascopes protobuf-maven-plugin: maintained; downloads protoc, auto-detects platform,
+			<!-- ascopes protobuf-maven-plugin: maintained; downloads protoc,
+			auto-detects platform,
 			     generates message + gRPC-Java stubs from src/main/proto/*.proto -->
 			<plugin>
 				<groupId>io.github.ascopes</groupId>
@@ -153,7 +163,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- Registers the generated gRPC sources so STS/m2e (Eclipse) treats them as a source folder -->
+			<!-- Registers the generated gRPC sources so STS/m2e (Eclipse)
+			treats them as a source folder -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
@@ -167,7 +178,8 @@
 						</goals>
 						<configuration>
 							<sources>
-								<source>${project.build.directory}/generated-sources/protobuf</source>
+								<source>
+									${project.build.directory}/generated-sources/protobuf</source>
 							</sources>
 						</configuration>
 					</execution>

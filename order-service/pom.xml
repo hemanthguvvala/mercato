@@ -46,7 +46,8 @@
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
 		</dependency>
 
-		<!-- WebClient (reactive HTTP client) — for the Order -> Payment call (Phase 5).
+		<!-- WebClient (reactive HTTP client) — for the Order -> Payment call
+		(Phase 5).
 		     App stays a servlet/MVC app; we just use WebClient as the HTTP client. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -66,7 +67,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aop</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
 		<!-- Step 3: JDBC — JdbcTemplate, DataSource, HikariCP connection pool -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -106,14 +110,16 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Micrometer Prometheus registry: exposes /actuator/prometheus in scrape format (Phase 6) -->
+		<!-- Micrometer Prometheus registry: exposes /actuator/prometheus in
+		scrape format (Phase 6) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Micrometer Tracing (Brave bridge): auto-adds [app,traceId,spanId] to every log line (Phase 6) -->
+		<!-- Micrometer Tracing (Brave bridge): auto-adds [app,traceId,spanId]
+		to every log line (Phase 6) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>

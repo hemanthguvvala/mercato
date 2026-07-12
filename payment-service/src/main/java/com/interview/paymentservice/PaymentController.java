@@ -27,6 +27,6 @@ public class PaymentController {
 
 	@PostMapping("/refund")
 	public void refund(@Valid @RequestBody ChargeRequest chargeRequest) {
-		paymentService.refund(chargeRequest.orderId(), chargeRequest.amount());
+		paymentService.refund(chargeRequest.orderId());
 	}
 }

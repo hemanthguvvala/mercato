@@ -3,12 +3,13 @@ package com.interview.orderservice.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.orderservice.client.catalog.CatalogGateway;
 import com.interview.orderservice.client.catalog.CatalogProduct;
 import com.interview.orderservice.client.inventory.InventoryClient;
@@ -17,10 +18,7 @@ import com.interview.orderservice.client.payment.ChargeRequest;
 import com.interview.orderservice.client.payment.PaymentWebClient;
 import com.interview.orderservice.entity.OrderEntity;
 import com.interview.orderservice.entity.OrderItem;
-import com.interview.orderservice.entity.OutboxEvent;
-import com.interview.orderservice.event.OrderPlaced;
 import com.interview.orderservice.repository.OrderRepository;
-import com.interview.orderservice.repository.OutboxRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderDtos.OrderResponse;
 import com.interview.orderservice.web.OrderFailedException;
@@ -29,33 +27,33 @@ import feign.FeignException;
 
 @Service
 public class OrderService {
+	
+	private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
 	private final OrderRepository orderRepository;
 	private final CatalogGateway catalogGateway;
-	private final OutboxRepository outboxRepository;
-	private final ObjectMapper objectMapper;
 	private final PaymentWebClient paymentWebClient;
 	private final InventoryClient inventoryClient;
+	private final OrderPersistence orderPersistence;
 
 	public OrderService(OrderRepository orderRepository, CatalogGateway catalogGateway,
-			OutboxRepository outboxRepository, ObjectMapper objectMapper,
-			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay) {
+			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay,
+			OrderPersistence orderPersistence) {
 		this.catalogGateway = catalogGateway;
 		this.orderRepository = orderRepository;
-		this.outboxRepository = outboxRepository;
 		this.paymentWebClient = paymentWebClient;
-		this.objectMapper = objectMapper;
 		this.inventoryClient = inventoryGateWay;
+		this.orderPersistence = orderPersistence;
 	}
 
-	@Transactional
 	public OrderResponse create(CreateOrderRequest request) {
+		boolean chargeAttempted  = false;
 		OrderEntity order = new OrderEntity(request.customerName());
 		for (CreateOrderRequest.Line line : request.lines()) {
 			CatalogProduct product = catalogGateway.getProduct(line.productId());
 			order.addItem(new OrderItem(product.id(), product.name(), product.price(), line.quantity()));
 		}
-		OrderEntity savedOrder = orderRepository.save(order);
+		OrderEntity savedOrder = orderPersistence.savePending(order);
 		double total = savedOrder.getItems().stream().mapToDouble(i -> i.getUnitPrice() * i.getQuantity()).sum();
 
 		List<StockRequest> reserved = new ArrayList<>();
@@ -66,24 +64,32 @@ public class OrderService {
 				inventoryClient.reserve(req);
 				reserved.add(req);
 			}
+			chargeAttempted = true;
 			paymentWebClient.charge(new ChargeRequest(savedOrder.getId(), total));
-		} catch (FeignException | WebClientResponseException ex) {
-
+		} catch (FeignException | WebClientResponseException | WebClientRequestException ex) {
 			for (StockRequest r : reserved) {
-				inventoryClient.release(r);
+				try {
+					inventoryClient.release(r);
+				} catch (Exception e) {
+					log.error(
+							"Compensation: failed to release stock for product {} on order {} — MANUAL RECOVERY NEEDED",
+							r.productId(), savedOrder.getId(), e);
+				}
 			}
+			orderPersistence.fail(savedOrder.getId());
+			if (chargeAttempted) {
+				try {
+					paymentWebClient.refund(new ChargeRequest(savedOrder.getId(), total));
+				} catch (Exception e) {
+					log.error("Compensation: refund failed for order {} — MANUAL RECOVERY NEEDED", savedOrder.getId(),
+							e);
+				}
 
+			}
 			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + ex.getMessage(), ex);
 		}
-
-		OrderPlaced event = new OrderPlaced(savedOrder.getId(), savedOrder.getCustomerName(), total,
-				savedOrder.getItems().size());
-		try {
-			String payload = objectMapper.writeValueAsString(event);
-			outboxRepository.save(new OutboxEvent(savedOrder.getId(), "OrderPlaced", payload));
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException("Failed to serialize OrderPlaced",e);
-		}
+		
+		orderPersistence.confirm(savedOrder.getId(), total);
 		
 		return toResponse(savedOrder);
 	}

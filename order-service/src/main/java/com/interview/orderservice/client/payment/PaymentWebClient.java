@@ -21,4 +21,13 @@ public class PaymentWebClient {
 		.block();
 	}
 	
+	public void refund(ChargeRequest chargeRequest) {
+		webClient.post()
+		.uri("/payments/refund")
+		.bodyValue(chargeRequest)
+		.retrieve()
+		.toBodilessEntity()
+		.block();
+	}
+	
 }

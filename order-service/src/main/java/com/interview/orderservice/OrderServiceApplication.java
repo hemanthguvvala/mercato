@@ -2,11 +2,8 @@ package com.interview.orderservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
-
-import com.interview.orderservice.config.JwtProperties;
 
 /**
  * The single entry point of the app.
@@ -20,7 +17,6 @@ import com.interview.orderservice.config.JwtProperties;
  * container you already know), starts embedded Tomcat, and registers the DispatcherServlet.
  */
 @SpringBootApplication
-@EnableConfigurationProperties(JwtProperties.class)
 @EnableFeignClients
 @EnableScheduling
 public class OrderServiceApplication {

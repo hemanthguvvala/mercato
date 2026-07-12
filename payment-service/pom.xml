@@ -15,7 +15,8 @@
 	<artifactId>payment-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>payment-service</name>
-	<description>Payment service — simulates an external gateway; charges/refunds for the order saga (Mercato)</description>
+	<description>Payment service — simulates an external gateway;
+		charges/refunds for the order saga (Mercato)</description>
 
 	<properties>
 		<java.version>17</java.version>
@@ -41,7 +42,8 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Distributed tracing: continue the trace + export spans to Zipkin (Phase 6) -->
+		<!-- Distributed tracing: continue the trace + export spans to Zipkin
+		(Phase 6) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
@@ -50,7 +52,10 @@
 			<groupId>io.zipkin.reporter2</groupId>
 			<artifactId>zipkin-reporter-brave</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
 		<!-- Eureka client: registers payment-service for discovery -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>

@@ -43,6 +43,11 @@ public class GlobalExceptionHandler {
 		log.info("Unhandle Exception - {} ", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
+	
+	@ExceptionHandler(IllegalStateException.class)
+	public ProblemDetail handleNotFound(IllegalStateException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+	}
 
 	@ExceptionHandler(CatalogUnavailableException.class)
 	public ProblemDetail handleCatalogUnavailable(CatalogUnavailableException ex) {

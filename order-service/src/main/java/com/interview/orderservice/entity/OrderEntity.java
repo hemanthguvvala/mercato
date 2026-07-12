@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,12 +26,17 @@ public class OrderEntity {
 
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<OrderItem> items = new ArrayList<>();
+	
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private OrderStatus status;
 
 	protected OrderEntity() {
 	}
 
 	public OrderEntity(String customerName) {
 		this.customerName = customerName;
+		this.status = OrderStatus.PENDING;
 	}
 
 	public void addItem(OrderItem item) {
@@ -46,5 +54,17 @@ public class OrderEntity {
 
 	public List<OrderItem> getItems() {
 		return items;
+	}
+	
+	public OrderStatus getStatus() {
+		return this.status;
+	}
+	
+	public void markFailed() {
+		this.status = OrderStatus.FAILED;
+	}
+	
+	public void markConfirmed() {
+		this.status = OrderStatus.CONFIRMED;
 	}
 }
