@@ -23,13 +23,13 @@ public class AnalyticsListener {
 	@KafkaListener(topics = "order-events")
 	public void onOrderPlace(OrderPlaced orderPlacedEvent) {
 		String key = "analytics:OrderPlaced:"+ orderPlacedEvent.orderId();
-		Boolean firstTime = redisTemplate.opsForValue().setIfAbsent(key, "1",Duration.ofHours(24));
-		if(Boolean.FALSE.equals(firstTime)) {
+		if(Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
 			System.out.println("duplicate .. skipping.");
 			return;
 		}
 		orderCount++;
 		totalRevenue += orderPlacedEvent.totalAmount();
 		System.out.println("📊 Analytics: " + orderCount + " orders, total revenue " + totalRevenue);
+		redisTemplate.opsForValue().setIfAbsent(key, "1",Duration.ofHours(24));
 	}
 }

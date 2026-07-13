@@ -39,6 +39,10 @@ public class OutboxEvent {
 	public Long getId() {
 		return id;
 	}
+	
+	public Long getAggregateId() {
+		return aggregateId;
+	}
 
 	public String getEventType() {
 		return eventType;

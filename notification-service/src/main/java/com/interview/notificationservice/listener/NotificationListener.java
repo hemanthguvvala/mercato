@@ -20,12 +20,12 @@ public class NotificationListener {
 	@KafkaListener(topics = "order-events")
 	public void orderPlaced(OrderPlaced orderPlacedEvent) {
 		String key = "notification:OrderPlaced:" + orderPlacedEvent.orderId();
-		Boolean firstTime = redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24));
-		if (Boolean.FALSE.equals(firstTime)) {
+		if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
 			System.out.println("duplicate..skipping");
 			return;
 		}
 		System.out.println("📧 Order #" + orderPlacedEvent.orderId() + " for " + orderPlacedEvent.customerName()
 				+ " — total " + orderPlacedEvent.totalAmount() + " (" + orderPlacedEvent.itemCount() + " items)");
+		 redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24));
 	}
 }

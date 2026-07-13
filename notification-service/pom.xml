@@ -44,7 +44,8 @@
 			<artifactId>spring-boot-starter-json</artifactId>
 		</dependency>
 
-		<!-- Redis: idempotency dedup store (set-if-absent + TTL) so a duplicate event doesn't notify twice. -->
+		<!-- Redis: idempotency dedup store (set-if-absent + TTL) so a duplicate
+		event doesn't notify twice. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>

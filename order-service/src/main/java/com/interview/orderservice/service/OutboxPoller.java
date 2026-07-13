@@ -1,14 +1,13 @@
 package com.interview.orderservice.service;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.orderservice.entity.OutboxEvent;
 import com.interview.orderservice.event.OrderPlaced;
@@ -16,6 +15,8 @@ import com.interview.orderservice.repository.OutboxRepository;
 
 @Component
 public class OutboxPoller {
+
+	private static final Logger log = LoggerFactory.getLogger(OutboxPoller.class);
 
 	private final OutboxRepository outboxRepository;
 	private final KafkaTemplate<String, OrderPlaced> kafkaTemplate;
@@ -29,19 +30,18 @@ public class OutboxPoller {
 	}
 
 	@Scheduled(fixedDelay = 2000)
-	@Transactional
 	public void publishPending() {
 		List<OutboxEvent> events = outboxRepository.findByPublishedFalse();
 		for (OutboxEvent event : events) {
 			try {
 				OrderPlaced orderPlaced = objectMapper.readValue(event.getPayload(), OrderPlaced.class);
-				kafkaTemplate.send("order-events", orderPlaced).get();
-			} catch (JsonProcessingException e) {
-				throw new RuntimeException("Failed to deserialize OrderPlaced", e);
-			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException("Failed to Publish to kafka", e);
+				kafkaTemplate.send("order-events", String.valueOf(event.getAggregateId()), orderPlaced).get();
+				event.markPublished();
+				outboxRepository.save(event);
+			} catch (Exception e) {
+				log.error("Outbox event {} failed to publish; leaving unpublished for retry next poll", event.getId(),
+						e);
 			}
-			event.markPublished();
 		}
 	}
 }

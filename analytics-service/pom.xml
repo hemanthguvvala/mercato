@@ -15,7 +15,8 @@
 	<artifactId>analytics-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>analytics-service</name>
-	<description>Second consumer group on order-events — demonstrates Kafka fan-out (Mercato)</description>
+	<description>Second consumer group on order-events — demonstrates Kafka
+		fan-out (Mercato)</description>
 
 	<properties>
 		<java.version>17</java.version>
@@ -38,7 +39,8 @@
 			<artifactId>spring-boot-starter-json</artifactId>
 		</dependency>
 
-		<!-- Redis: idempotency dedup store (set-if-absent + TTL) so duplicate events don't double-count. -->
+		<!-- Redis: idempotency dedup store (set-if-absent + TTL) so duplicate
+		events don't double-count. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
