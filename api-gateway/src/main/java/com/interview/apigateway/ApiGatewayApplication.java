@@ -1,24 +1,14 @@
 package com.interview.apigateway;
 
-import java.nio.charset.StandardCharsets;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
-import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.config.Customizer;
-
-import reactor.core.publisher.Mono;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @SpringBootApplication
 public class ApiGatewayApplication {
@@ -29,8 +19,8 @@ public class ApiGatewayApplication {
 
 	@Bean
 	public KeyResolver userKeyResolver() {
-		return exchange -> Mono.justOrEmpty(exchange.getRequest().getHeaders().getFirst("X-User"))
-				.defaultIfEmpty("anonymous");
+		return exchange -> ReactiveSecurityContextHolder.getContext().map(ctx -> ctx.getAuthentication().getName())
+				.defaultIfEmpty("anonymouds");
 	}
 	
 	
