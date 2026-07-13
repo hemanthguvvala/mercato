@@ -9,6 +9,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -43,7 +44,7 @@ public class GlobalExceptionHandler {
 		log.info("Unhandle Exception - {} ", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
-	
+
 	@ExceptionHandler(IllegalStateException.class)
 	public ProblemDetail handleNotFound(IllegalStateException ex) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -54,10 +55,15 @@ public class GlobalExceptionHandler {
 		log.info("Catalog unavailble - {} ", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
 	}
-	
+
 	@ExceptionHandler(OrderFailedException.class)
 	public ProblemDetail handleOrderFailed(OrderFailedException ex) {
 		log.info("Catalog unavailble - {} ", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+	}
+
+	@ExceptionHandler(MissingRequestHeaderException.class)
+	public ProblemDetail handleMissingRequestHeaders(MissingRequestHeaderException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
 	}
 }

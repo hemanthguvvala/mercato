@@ -22,12 +22,13 @@ import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderDtos.OrderResponse;
 import com.interview.orderservice.web.OrderFailedException;
+import com.interview.orderservice.web.ResourceNotFoundException;
 
 import feign.FeignException;
 
 @Service
 public class OrderService {
-	
+
 	private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
 	private final OrderRepository orderRepository;
@@ -37,8 +38,7 @@ public class OrderService {
 	private final OrderPersistence orderPersistence;
 
 	public OrderService(OrderRepository orderRepository, CatalogGateway catalogGateway,
-			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay,
-			OrderPersistence orderPersistence) {
+			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay, OrderPersistence orderPersistence) {
 		this.catalogGateway = catalogGateway;
 		this.orderRepository = orderRepository;
 		this.paymentWebClient = paymentWebClient;
@@ -47,7 +47,7 @@ public class OrderService {
 	}
 
 	public OrderResponse create(CreateOrderRequest request) {
-		boolean chargeAttempted  = false;
+		boolean chargeAttempted = false;
 		OrderEntity order = new OrderEntity(request.customerName());
 		for (CreateOrderRequest.Line line : request.lines()) {
 			CatalogProduct product = catalogGateway.getProduct(line.productId());
@@ -88,15 +88,22 @@ public class OrderService {
 			}
 			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + ex.getMessage(), ex);
 		}
-		
+
 		orderPersistence.confirm(savedOrder.getId(), total);
-		
+
 		return toResponse(savedOrder);
 	}
 
 	@Transactional(readOnly = true)
 	public List<OrderResponse> findAll() {
 		return orderRepository.findAllWithItems().stream().map(this::toResponse).toList();
+	}
+
+	@Transactional(readOnly = true)
+	public OrderResponse findBy(Long id) {
+		OrderEntity orderEntity = orderRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
+		return toResponse(orderEntity);
 	}
 
 	@Transactional(readOnly = true)
