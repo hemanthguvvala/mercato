@@ -20,10 +20,10 @@ public class CatalogGateway {
 		this.catalogClient = catalogClient;
 	}
 
-	@CircuitBreaker(name = "catalog", fallbackMethod = "getProductFallback")
-	@Retry(name = "catalog")
-	@Bulkhead(name = "catalog")
+	@Retry(name = "catalog", fallbackMethod = "getProductFallback")
+	@CircuitBreaker(name = "catalog")
 	@RateLimiter(name = "catalog")
+	@Bulkhead(name = "catalog")
 	public CatalogProduct getProduct(Long id) {
 		return catalogClient.getProduct(id);
 	}
