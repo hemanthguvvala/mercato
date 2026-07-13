@@ -33,11 +33,6 @@ public class ApiGatewayApplication {
 				.defaultIfEmpty("anonymous");
 	}
 	
-	@Bean
-	public ReactiveJwtDecoder jwtDecoder(@Value("${jwt.secret-key}") String secret) {
-		SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-		return NimbusReactiveJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
-	}
 	
 	@Bean
 	public SecurityWebFilterChain filterChain( ServerHttpSecurity httpSecurity) {
