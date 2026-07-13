@@ -1,6 +1,7 @@
 package com.interview.paymentservice.service;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,5 +47,13 @@ public class PaymentService {
 		}
 		log.info("Refunded order {} amount {}", orderId, chargedAmount);
 
+	}
+	
+	public Optional<Double> chargedAmount(Long orderId){
+		return Optional.ofNullable(charged.get(orderId));
+	}
+	
+	public boolean isRefunded(Long orderId) {
+		return refunded.contains(orderId);
 	}
 }
