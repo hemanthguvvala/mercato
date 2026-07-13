@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -21,6 +22,12 @@ public class GlobalExceptionHandler {
 	public ProblemDetail handleGeneric(Exception ex) {
 		log.info("Unhandle exception - {} ", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,  "Something went wrong please contact admin.");
+	}
+	
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	public ProblemDetail handleOptimisticLock( ObjectOptimisticLockingFailureException ex) {
+		log.warn("Optimistic lock conflict — concurrent reservation: {}", ex.getMessage());
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Concurrent update, please retry");
 	}
 	
 	@ExceptionHandler(IllegalStateException.class)

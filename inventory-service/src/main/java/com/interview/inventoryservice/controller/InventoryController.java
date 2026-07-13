@@ -22,7 +22,7 @@ public class InventoryController {
 	
 	@PostMapping("/reserve")
 	public void reserve(@Valid @RequestBody StockRequest request) {
-		inventoryService.reserve(request.productId(), request.quantity());
+		inventoryService.reservePessimistic(request.productId(), request.quantity());
 	}
 	
 	@PostMapping("/release")
