@@ -2,6 +2,8 @@ package com.interview.notificationservice.listener;
 
 import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -10,9 +12,11 @@ import com.interview.notificationservice.event.OrderPlaced;
 
 @Component
 public class NotificationListener {
-	
+
+	private static final Logger log = LoggerFactory.getLogger(NotificationListener.class);
+
 	private final StringRedisTemplate redisTemplate;
-	
+
 	public NotificationListener(StringRedisTemplate redisTemplate) {
 		this.redisTemplate = redisTemplate;
 	}
@@ -21,11 +25,11 @@ public class NotificationListener {
 	public void orderPlaced(OrderPlaced orderPlacedEvent) {
 		String key = "notification:OrderPlaced:" + orderPlacedEvent.orderId();
 		if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
-			System.out.println("duplicate..skipping");
+			log.debug("Duplicate OrderPlaced {} — skipping", orderPlacedEvent.orderId());
 			return;
 		}
-		System.out.println("📧 Order #" + orderPlacedEvent.orderId() + " for " + orderPlacedEvent.customerName()
-				+ " — total " + orderPlacedEvent.totalAmount() + " (" + orderPlacedEvent.itemCount() + " items)");
-		 redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24));
+		log.info("Notify: order #{} for {} — total {} ({} items)", orderPlacedEvent.orderId(),
+				orderPlacedEvent.customerName(), orderPlacedEvent.totalAmount(), orderPlacedEvent.itemCount());
+		redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24));
 	}
 }
