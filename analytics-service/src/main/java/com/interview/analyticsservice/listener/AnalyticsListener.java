@@ -11,8 +11,6 @@ import com.interview.analyticsservice.event.OrderPlaced;
 @Component
 public class AnalyticsListener {
 
-	private double totalRevenue = 0;
-	private int orderCount = 0;
 
 	private final StringRedisTemplate redisTemplate;
 
@@ -27,9 +25,9 @@ public class AnalyticsListener {
 			System.out.println("duplicate .. skipping.");
 			return;
 		}
-		orderCount++;
-		totalRevenue += orderPlacedEvent.totalAmount();
-		System.out.println("📊 Analytics: " + orderCount + " orders, total revenue " + totalRevenue);
+		Long orders  =redisTemplate.opsForValue().increment("analytics:orders");
+		Double revenue = redisTemplate.opsForValue().increment("analytics:revenue", orderPlacedEvent.totalAmount());
+		System.out.println("📊 Analytics: " + orders + " orders, total revenue " + revenue);
 		redisTemplate.opsForValue().setIfAbsent(key, "1",Duration.ofHours(24));
 	}
 }
