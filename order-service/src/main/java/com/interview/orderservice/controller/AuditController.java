@@ -2,6 +2,7 @@ package com.interview.orderservice.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +20,8 @@ public class AuditController {
 		this.auditLogService = auditLogService;
 	}
 
+	// R14: audit log is admin-only (was readable by any authenticated user)
+	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping
 	public List<AuditLogEntity> getAll() {
 		return auditLogService.getAllAuditLogs();
