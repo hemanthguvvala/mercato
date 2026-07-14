@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
 	
 	@ExceptionHandler(Exception.class)
 	public ProblemDetail handleGeneric(Exception ex) {
-		log.info("Unhandle exception - {} ", ex);
+		log.error("Unhandle exception", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,  "Something went wrong please contact admin.");
 	}
 	

@@ -36,6 +36,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ProblemDetail handleGeneric(Exception ex) {
+		log.error("Unhandled exception", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong");
 	}
 
