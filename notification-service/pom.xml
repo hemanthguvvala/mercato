@@ -5,15 +5,14 @@
 
 	<!-- Spring Boot parent: manages dependency versions (incl. spring-kafka) -->
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.5</version>
-		<relativePath />
+		<groupId>com.interview</groupId>
+		<artifactId>mercato-parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
-	<groupId>com.interview</groupId>
+
 	<artifactId>notification-service</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	<name>notification-service</name>
 	<description>Consumes OrderPlaced events and sends notifications (Mercato)</description>
 
@@ -51,7 +50,8 @@
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
 
-		<!-- R33: web + actuator so K8s can HTTP-probe /actuator/health (liveness/readiness) -->
+		<!-- R33: web + actuator so K8s can HTTP-probe /actuator/health
+		(liveness/readiness) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -59,6 +59,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.interview</groupId>
+			<artifactId>events</artifactId>
 		</dependency>
 	</dependencies>
 

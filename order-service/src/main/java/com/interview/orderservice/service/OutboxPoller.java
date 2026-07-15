@@ -9,8 +9,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interview.events.OrderPlaced;
 import com.interview.orderservice.entity.OutboxEvent;
-import com.interview.orderservice.event.OrderPlaced;
 import com.interview.orderservice.repository.OutboxRepository;
 
 @Component

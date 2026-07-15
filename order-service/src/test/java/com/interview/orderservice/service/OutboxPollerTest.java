@@ -19,8 +19,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interview.events.OrderPlaced;
 import com.interview.orderservice.entity.OutboxEvent;
-import com.interview.orderservice.event.OrderPlaced;
 import com.interview.orderservice.repository.OutboxRepository;
 
 /**

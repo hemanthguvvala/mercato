@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.interview</groupId>
+		<artifactId>mercato-parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<artifactId>events</artifactId>
+	<name>events</name>
+	<description>Shared asynchronous domain events (Kafka wire contracts) for Mercato</description>
+
+	<!-- Deliberately a PLAIN library:
+	     - no dependencies (a record needs nothing)
+	     - NO spring-boot-maven-plugin. That plugin repackages into an executable
+	       fat jar, which CANNOT be consumed as a dependency. A shared lib must stay
+	       a plain jar. This is the one place we do NOT copy the services' <build>. -->
+</project>

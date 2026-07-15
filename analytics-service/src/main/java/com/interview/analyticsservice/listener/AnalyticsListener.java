@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import com.interview.analyticsservice.event.OrderPlaced;
+import com.interview.events.OrderPlaced;
 
 @Component
 public class AnalyticsListener {

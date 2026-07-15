@@ -5,9 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interview.events.OrderPlaced;
 import com.interview.orderservice.entity.OrderEntity;
 import com.interview.orderservice.entity.OutboxEvent;
-import com.interview.orderservice.event.OrderPlaced;
 import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.repository.OutboxRepository;
 
