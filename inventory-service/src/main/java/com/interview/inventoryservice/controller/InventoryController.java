@@ -15,18 +15,18 @@ import jakarta.validation.Valid;
 public class InventoryController {
 
 	private final InventoryService inventoryService;
-	
+
 	public InventoryController(InventoryService inventoryService) {
 		this.inventoryService = inventoryService;
 	}
-	
+
 	@PostMapping("/reserve")
 	public void reserve(@Valid @RequestBody StockRequest request) {
-		inventoryService.reservePessimistic(request.productId(), request.quantity());
-	}
-	
+		inventoryService.reserve(request.orderId(), request.productId(), request.quantity());
+	}	 
+
 	@PostMapping("/release")
 	public void release(@Valid @RequestBody StockRequest request) {
-		inventoryService.release(request.productId(), request.quantity());
+		inventoryService.release(request.orderId(), request.productId());
 	}
 }

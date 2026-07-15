@@ -60,7 +60,7 @@ public class OrderService {
 
 		try {
 			for (OrderItem item : savedOrder.getItems()) {
-				StockRequest req = new StockRequest(item.getProductId(), item.getQuantity());
+				StockRequest req = new StockRequest(savedOrder.getId(),item.getProductId(), item.getQuantity());
 				inventoryClient.reserve(req);
 				reserved.add(req);
 			}

@@ -75,7 +75,7 @@ class OrderServiceSagaTest {
 	void happyPath_confirmsOrder_andNeverCompensates() {
 		orderService.create(request);
 
-		verify(inventoryClient).reserve(new StockRequest(1L, 2));
+		verify(inventoryClient).reserve(new StockRequest(100L, 1L, 2));
 		verify(paymentWebClient).charge(new ChargeRequest(100L, 998.0));
 		verify(orderPersistence).confirm(100L, 998.0);
 
@@ -93,7 +93,7 @@ class OrderServiceSagaTest {
 				.isInstanceOf(OrderFailedException.class);
 
 		// compensation ran:
-		verify(inventoryClient).release(new StockRequest(1L, 2));        // reserved stock released
+		verify(inventoryClient).release(new StockRequest(100L, 1L, 2));        // reserved stock released
 		verify(orderPersistence).fail(100L);                            // order marked FAILED
 		verify(paymentWebClient).refund(new ChargeRequest(100L, 998.0)); // defensive refund (charge was attempted)
 
