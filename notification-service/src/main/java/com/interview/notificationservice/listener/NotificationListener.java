@@ -21,7 +21,7 @@ public class NotificationListener {
 		this.redisTemplate = redisTemplate;
 	}
 
-	@KafkaListener(topics = "order-events")
+	@KafkaListener(topics = "${app.kafka.order-events-topic}")
 	public void orderPlaced(OrderPlaced orderPlacedEvent) {
 		String key = "notification:OrderPlaced:" + orderPlacedEvent.orderId();
 		if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {

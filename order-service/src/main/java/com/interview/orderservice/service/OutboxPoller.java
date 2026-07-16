@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,12 +22,14 @@ public class OutboxPoller {
 	private final OutboxRepository outboxRepository;
 	private final KafkaTemplate<String, OrderPlaced> kafkaTemplate;
 	private final ObjectMapper objectMapper;
+	private final String topic;
 
 	public OutboxPoller(OutboxRepository outboxRepository, KafkaTemplate<String, OrderPlaced> kafkaTemplate,
-			ObjectMapper objectMapper) {
+			ObjectMapper objectMapper, @Value("${app.kafka.order-events-topic}") String topic) {
 		this.outboxRepository = outboxRepository;
 		this.kafkaTemplate = kafkaTemplate;
 		this.objectMapper = objectMapper;
+		this.topic = topic;
 	}
 
 	@Scheduled(fixedDelay = 2000)
@@ -35,7 +38,7 @@ public class OutboxPoller {
 		for (OutboxEvent event : events) {
 			try {
 				OrderPlaced orderPlaced = objectMapper.readValue(event.getPayload(), OrderPlaced.class);
-				kafkaTemplate.send("order-events", String.valueOf(event.getAggregateId()), orderPlaced).get();
+				kafkaTemplate.send(topic, String.valueOf(event.getAggregateId()), orderPlaced).get();
 				event.markPublished();
 				outboxRepository.save(event);
 			} catch (Exception e) {

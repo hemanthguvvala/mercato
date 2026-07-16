@@ -12,7 +12,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -38,11 +37,14 @@ class OutboxPollerTest {
 	@Mock
 	ObjectMapper objectMapper;
 
-	@InjectMocks
-	OutboxPoller outboxPoller;
+	// The topic is now injected (constructor @Value("${app.kafka.order-events-topic}")); we pass it
+	// explicitly here so the unit test stays independent of Spring property binding.
+	private static final String TOPIC = "order-events";
 
 	@Test
 	void poisonEventDoesNotBlockOrRollBackTheOthers() throws Exception {
+		OutboxPoller outboxPoller = new OutboxPoller(outboxRepository, kafkaTemplate, objectMapper, TOPIC);
+
 		OutboxEvent good1 = new OutboxEvent(1L, "OrderPlaced", "good-1");
 		OutboxEvent poison = new OutboxEvent(2L, "OrderPlaced", "poison"); // sits BETWEEN the good ones
 		OutboxEvent good2 = new OutboxEvent(3L, "OrderPlaced", "good-3");
@@ -61,13 +63,13 @@ class OutboxPollerTest {
 		outboxPoller.publishPending();
 
 		// both good events published AND marked (saved) — the one AFTER the poison still went out
-		verify(kafkaTemplate).send("order-events", "1", parsed);
-		verify(kafkaTemplate).send("order-events", "3", parsed);
+		verify(kafkaTemplate).send(TOPIC, "1", parsed);
+		verify(kafkaTemplate).send(TOPIC, "3", parsed);
 		verify(outboxRepository).save(good1);
 		verify(outboxRepository).save(good2);
 
 		// the poison event was neither sent nor marked — it stays unpublished for retry (no HOL block)
-		verify(kafkaTemplate, never()).send(eq("order-events"), eq("2"), any());
+		verify(kafkaTemplate, never()).send(eq(TOPIC), eq("2"), any());
 		verify(outboxRepository, never()).save(poison);
 	}
 }

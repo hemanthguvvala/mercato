@@ -21,7 +21,7 @@ public class AnalyticsListener {
 		this.redisTemplate = redisTemplate;
 	}
 
-	@KafkaListener(topics = "order-events")
+	@KafkaListener(topics = "${app.kafka.order-events-topic}")
 	public void onOrderPlace(OrderPlaced orderPlacedEvent) {
 		String key = "analytics:OrderPlaced:" + orderPlacedEvent.orderId();
 		if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
