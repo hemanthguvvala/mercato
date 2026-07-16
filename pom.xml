@@ -35,6 +35,7 @@
 		<module>notification-service</module>
 		<module>analytics-service</module>
 		<module>review-service</module>
+		<module>mercato-framework</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>
@@ -79,7 +80,20 @@
 				<artifactId>events</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>com.interview</groupId>
+				<artifactId>security-starter</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 
 </project>

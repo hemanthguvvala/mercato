@@ -105,6 +105,11 @@
 			<artifactId>spring-graphql-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>com.interview</groupId>
+			<artifactId>security-starter</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

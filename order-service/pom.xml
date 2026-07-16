@@ -162,6 +162,11 @@
 			<groupId>com.interview</groupId>
 			<artifactId>events</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>com.interview</groupId>
+			<artifactId>security-starter</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
