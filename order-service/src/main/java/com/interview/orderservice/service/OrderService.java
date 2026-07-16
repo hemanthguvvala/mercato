@@ -1,10 +1,13 @@
 package com.interview.orderservice.service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -36,14 +39,17 @@ public class OrderService {
 	private final PaymentWebClient paymentWebClient;
 	private final InventoryClient inventoryClient;
 	private final OrderPersistence orderPersistence;
+	private final Executor reservationExecutor;
 
 	public OrderService(OrderRepository orderRepository, CatalogGateway catalogGateway,
-			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay, OrderPersistence orderPersistence) {
+			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay, OrderPersistence orderPersistence,
+			@Qualifier("reservationExecutor") Executor executor) {
 		this.catalogGateway = catalogGateway;
 		this.orderRepository = orderRepository;
 		this.paymentWebClient = paymentWebClient;
 		this.inventoryClient = inventoryGateWay;
 		this.orderPersistence = orderPersistence;
+		this.reservationExecutor = executor;
 	}
 
 	public OrderResponse create(CreateOrderRequest request) {
@@ -56,18 +62,17 @@ public class OrderService {
 		OrderEntity savedOrder = orderPersistence.savePending(order);
 		double total = savedOrder.getItems().stream().mapToDouble(i -> i.getUnitPrice() * i.getQuantity()).sum();
 
-		List<StockRequest> reserved = new ArrayList<>();
-
+		List<StockRequest> requests = savedOrder.getItems().stream()
+				.map(item -> new StockRequest(savedOrder.getId(), item.getProductId(), item.getQuantity())).toList();
 		try {
-			for (OrderItem item : savedOrder.getItems()) {
-				StockRequest req = new StockRequest(savedOrder.getId(),item.getProductId(), item.getQuantity());
-				inventoryClient.reserve(req);
-				reserved.add(req);
-			}
+			CompletableFuture<?>[] futures = requests.stream()
+					.map(req -> CompletableFuture.runAsync(() -> inventoryClient.reserve(req), reservationExecutor))
+					.toArray(CompletableFuture[]::new);
+			CompletableFuture.allOf(futures).join();
 			chargeAttempted = true;
 			paymentWebClient.charge(new ChargeRequest(savedOrder.getId(), total));
-		} catch (FeignException | WebClientResponseException | WebClientRequestException ex) {
-			for (StockRequest r : reserved) {
+		} catch (CompletionException | FeignException | WebClientResponseException | WebClientRequestException ex) {
+			for (StockRequest r : requests) {
 				try {
 					inventoryClient.release(r);
 				} catch (Exception e) {
@@ -84,13 +89,11 @@ public class OrderService {
 					log.error("Compensation: refund failed for order {} — MANUAL RECOVERY NEEDED", savedOrder.getId(),
 							e);
 				}
-
 			}
-			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + ex.getMessage(), ex);
+			Throwable cause = (ex instanceof CompletionException && ex.getCause() != null) ? ex.getCause() : ex;
+			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + cause.getMessage(), cause);
 		}
-
 		orderPersistence.confirm(savedOrder.getId(), total);
-
 		return toResponse(savedOrder);
 	}
 

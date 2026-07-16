@@ -2,6 +2,7 @@ package com.interview.orderservice.service;
 
 import java.util.List;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ public class AuditLogService {
 		this.auditRepository = auditRepository;
 	}
 
+	@Async("auditExecutor")
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void log(String action) {
 		auditRepository.save(new AuditLogEntity(action));
