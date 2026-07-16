@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Build all 12 modules + run unit/slice tests. Integration tests (@Tag("integration"),
+      # the full-context @SpringBootTest ones) are excluded — they need real infra and run
+      # in the deploy/integration phase once Docker is available.
+      - name: Build + test
+        run: mvn -B verify -DexcludedGroups=integration

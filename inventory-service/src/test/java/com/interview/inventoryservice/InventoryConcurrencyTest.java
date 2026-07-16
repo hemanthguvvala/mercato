@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,6 +33,7 @@ import com.interview.inventoryservice.service.InventoryService;
  * Isolated in-memory H2 (won't touch ./data/inventorydb); Eureka off; generous lock timeout so
  * pessimistic waiters don't spuriously time out under the burst.
  */
+@Tag("integration") // full-context @SpringBootTest — excluded from the fast CI, runs in the integration phase
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:invtest;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
         "eureka.client.enabled=false"
