@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.interview.catalogservice.service.ProductService;
 import com.interview.catalogservice.web.Product;
+import com.interview.catalogservice.web.ProductSearchCriteria;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -40,7 +42,14 @@ public class ProductController {
 	public List<Product> search(@RequestParam(required = false) String name) {
 		return productService.search(name);
 	}
-
+	
+	@GetMapping("/search")
+	public List<Product> searchProduct(@RequestParam(required = false) String name,
+			@RequestParam(required = false) double minPrice, @RequestParam(required = false) double maxPrice,
+			@RequestParam(required = false) Long categoryId) {
+		ProductSearchCriteria criteria = new ProductSearchCriteria(name, minPrice, maxPrice, categoryId);
+		return productService.search(criteria);
+	}
 	@PostMapping()
 	public ResponseEntity<Product> create(@Valid @RequestBody Product productRequest) {
 		Product saved = productService.create(productRequest);

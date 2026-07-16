@@ -9,6 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +20,9 @@ import com.interview.catalogservice.entities.ProductEntity;
 import com.interview.catalogservice.repository.CategoryRepository;
 import com.interview.catalogservice.repository.ProductDetailRepository;
 import com.interview.catalogservice.repository.ProductRepository;
+import com.interview.catalogservice.repository.ProductSpecifications;
 import com.interview.catalogservice.web.Product;
+import com.interview.catalogservice.web.ProductSearchCriteria;
 import com.interview.catalogservice.web.ProductWithCategories;
 
 @Service
@@ -105,6 +108,25 @@ public class ProductService {
 						pc.getPosition()))
 				.toList();
 		return new ProductWithCategories(p.getId(), p.getName(), p.getPrice(), cats);
+	}
+	
+	@Transactional(readOnly = true)
+	public List<Product> search(ProductSearchCriteria criteria) {
+		Specification<ProductEntity> spec = Specification.where(null);
+		if (criteria.name() != null && !criteria.name().isBlank()) {
+			spec = spec.and(ProductSpecifications.nameContains(criteria.name()));
+		}
+		if (criteria.minPrice() != null) {
+			spec = spec.and(ProductSpecifications.priceAtLeast(criteria.minPrice()));
+		}
+		if (criteria.maxPrice() != null) {
+			spec = spec.and(ProductSpecifications.priceAtMost(criteria.maxPrice()));
+		}
+		if (criteria.categoryId() != null) {
+			spec = spec.and(ProductSpecifications.inCategory(criteria.categoryId()));
+		}
+
+		return repository.findAll(spec).stream().map(this::toDto).toList();
 	}
 
 	public Page<Product> page(Pageable pageable) {
