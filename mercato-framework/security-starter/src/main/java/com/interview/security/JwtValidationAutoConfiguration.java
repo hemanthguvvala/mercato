@@ -7,6 +7,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -25,7 +28,9 @@ public class JwtValidationAutoConfiguration {
 	JwtDecoder jwtDecoder(@Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
 			JwtValidationProperties props) {
 		NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-		decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(props.issuer()));
+		OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+				JwtValidators.createDefaultWithIssuer(props.issuer()), new AudienceValidator(props.audience()));
+		decoder.setJwtValidator(validator);
 		return decoder;
 	}
 
@@ -36,7 +41,9 @@ public class JwtValidationAutoConfiguration {
 			@Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
 			JwtValidationProperties props) {
 		NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri).build();
-		decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(props.issuer()));
+		OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+				JwtValidators.createDefaultWithIssuer(props.issuer()), new AudienceValidator(props.audience()));
+		decoder.setJwtValidator(validator);
 		return decoder;
 	}
 }

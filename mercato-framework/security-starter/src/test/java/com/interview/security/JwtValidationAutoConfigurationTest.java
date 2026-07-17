@@ -22,7 +22,8 @@ class JwtValidationAutoConfigurationTest {
 
 	private static final String[] PROPS = {
 			"spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:8084/oauth2/jwks",
-			"security.jwt.issuer=http://localhost:8084" };
+			"security.jwt.issuer=http://localhost:8084",
+			"security.jwt.audience=mercato" };
 
 	@Test
 	void servletApp_getsServletDecoderOnly() {
