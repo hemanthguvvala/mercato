@@ -36,5 +36,6 @@ jobs:
           cache: maven
       # Testcontainers spins real Kafka/Redis via the Docker daemon on the runner.
       - name: Integration tests (Testcontainers)
-        run: mvn -B verify -Dgroups=integration -pl analytics-service -am
+        run: mvn -B verify -Dtest=AnalyticsKafkaRedisIntegrationTest,ProductSchemaPostgresIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false -pl analytics-service,catalog-service -am
+
 
