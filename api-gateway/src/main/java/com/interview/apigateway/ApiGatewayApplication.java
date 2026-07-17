@@ -18,21 +18,11 @@ public class ApiGatewayApplication {
 	}
 
 	@Bean
-	public KeyResolver userKeyResolver() {
-		return exchange -> ReactiveSecurityContextHolder.getContext().map(ctx -> ctx.getAuthentication().getName())
-				.defaultIfEmpty("anonymouds");
-	}
-	
-	
-	@Bean
-	public SecurityWebFilterChain filterChain( ServerHttpSecurity httpSecurity) {
-		return httpSecurity
-				.csrf(csrf -> csrf.disable())
-				.authorizeExchange(auth -> 
-				auth.pathMatchers("/auth/**").permitAll()
-				.pathMatchers("/actuator/**").permitAll()
-				.pathMatchers(HttpMethod.GET,"/products/**").permitAll()
-				.anyExchange().authenticated())
+	public SecurityWebFilterChain filterChain(ServerHttpSecurity httpSecurity) {
+		return httpSecurity.csrf(csrf -> csrf.disable())
+				.authorizeExchange(
+						auth -> auth.pathMatchers("/auth/**").permitAll().pathMatchers("/actuator/**").permitAll()
+								.pathMatchers(HttpMethod.GET, "/products/**").permitAll().anyExchange().authenticated())
 				.oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults())).build();
 	}
 }
