@@ -24,3 +24,17 @@ jobs:
       # in the deploy/integration phase once Docker is available.
       - name: Build + test
         run: mvn -B verify -DexcludedGroups=integration
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      # Testcontainers spins real Kafka/Redis via the Docker daemon on the runner.
+      - name: Integration tests (Testcontainers)
+        run: mvn -B verify -Dgroups=integration -pl analytics-service -am
+
