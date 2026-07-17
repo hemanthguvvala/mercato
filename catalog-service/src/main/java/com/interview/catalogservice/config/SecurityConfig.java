@@ -16,6 +16,7 @@ public class SecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 		return httpSecurity
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/**").permitAll()
+						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers("/h2-console/**").permitAll().requestMatchers(HttpMethod.GET, "/products/**")
 						.permitAll().requestMatchers(HttpMethod.POST, "/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/products/**").hasRole("ADMIN")

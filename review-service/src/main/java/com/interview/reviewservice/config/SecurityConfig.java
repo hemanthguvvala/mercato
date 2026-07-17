@@ -15,6 +15,7 @@ public class SecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 		return httpSecurity.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/**").permitAll()
+						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers(HttpMethod.GET, "/reviews/**").permitAll().anyRequest().authenticated())
 				.csrf(csrf -> csrf.disable()).oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
 				.build();

@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>com.interview</groupId>
-        <artifactId>mercato-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-    </parent>
+	<parent>
+		<groupId>com.interview</groupId>
+		<artifactId>mercato-parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
 
-    <artifactId>mercato-framework</artifactId>
-    <packaging>pom</packaging>
-    <name>mercato-framework</name>
-    <description>Shared platform starters (auto-configuration) reused across Mercato services</description>
+	<artifactId>mercato-framework</artifactId>
+	<packaging>pom</packaging>
+	<name>mercato-framework</name>
+	<description>Shared platform starters (auto-configuration) reused across
+		Mercato services</description>
 
-    <modules>
-        <module>security-starter</module>
-    </modules>
+	<modules>
+		<module>security-starter</module>
+		<module>openapi-starter</module>
+	</modules>
+	
 </project>

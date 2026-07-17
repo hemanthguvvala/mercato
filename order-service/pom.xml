@@ -167,6 +167,10 @@
 			<groupId>com.interview</groupId>
 			<artifactId>security-starter</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.interview</groupId>
+			<artifactId>openapi-starter</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

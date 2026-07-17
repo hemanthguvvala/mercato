@@ -22,6 +22,7 @@
 		<jjwt.version>0.12.6</jjwt.version>
 		<nimbus.version>9.37.3</nimbus.version>
 		<resilience4j.version>2.2.0</resilience4j.version>
+		<springdoc.version>2.6.0</springdoc.version>
 	</properties>
 	<modules>
 		<module>events</module>
@@ -85,7 +86,18 @@
 				<artifactId>security-starter</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>com.interview</groupId>
+				<artifactId>openapi-starter</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
 		</dependencies>
+
 	</dependencyManagement>
 
 	<dependencies>
