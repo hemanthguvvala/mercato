@@ -1,5 +1,11 @@
 # Mercato — Production-Readiness Review & Forward Roadmap
 
+> ⚠️ **SUPERSEDED (2026-07-18).** This 2026-07-09 review is kept for history but is now **stale in
+> places** — several findings are fixed (reactor POM, shared `events`, RS256/JWKS auth, `/payments/**`
+> behind a token, PENDING-first saga, refund/idempotency-key, per-event outbox, resilience4j) and it
+> still describes the old HMAC-secret / `X-User` design the code has replaced.
+> **Current, code-accurate backlog:** see [`PRODUCTION-FIX-PLAN.md`](./PRODUCTION-FIX-PLAN.md).
+>
 > **Date:** 2026-07-09 · **Reviewer:** senior-architect pass over all 8 services
 > (`order`, `catalog`, `inventory`, `payment`, `notification`, `analytics`, `api-gateway`, `discovery`).
 > **Method:** three deep audits — (1) config/scalability/maintainability, (2) security, (3) correctness/reliability.
