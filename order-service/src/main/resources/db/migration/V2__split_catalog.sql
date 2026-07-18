@@ -3,7 +3,7 @@
 
 -- 1) Snapshot columns (nullable: existing rows pre-date the snapshot)
 alter table order_item add column product_name varchar(255);
-alter table order_item add column unit_price double;
+alter table order_item add column unit_price double precision;
 
 -- 2) Drop the cross-service foreign key, then the local product table.
 --    (FK name is the one Hibernate generated in V1__init.sql.)
