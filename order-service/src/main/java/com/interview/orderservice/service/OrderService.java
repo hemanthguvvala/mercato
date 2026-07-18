@@ -21,6 +21,7 @@ import com.interview.orderservice.client.payment.ChargeRequest;
 import com.interview.orderservice.client.payment.PaymentWebClient;
 import com.interview.orderservice.entity.OrderEntity;
 import com.interview.orderservice.entity.OrderItem;
+import com.interview.orderservice.entity.OrderStatus;
 import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderDtos.OrderResponse;
@@ -60,18 +61,24 @@ public class OrderService {
 			order.addItem(new OrderItem(product.id(), product.name(), product.price(), line.quantity()));
 		}
 		OrderEntity savedOrder = orderPersistence.savePending(order);
+		Long orderId = savedOrder.getId();
 		double total = savedOrder.getItems().stream().mapToDouble(i -> i.getUnitPrice() * i.getQuantity()).sum();
 
 		List<StockRequest> requests = savedOrder.getItems().stream()
 				.map(item -> new StockRequest(savedOrder.getId(), item.getProductId(), item.getQuantity())).toList();
 		try {
+			orderPersistence.transition(orderId, OrderStatus.RESERVING);
 			CompletableFuture<?>[] futures = requests.stream()
 					.map(req -> CompletableFuture.runAsync(() -> inventoryClient.reserve(req), reservationExecutor))
 					.toArray(CompletableFuture[]::new);
 			CompletableFuture.allOf(futures).join();
+			orderPersistence.transition(orderId, OrderStatus.STOCK_RESERVED);
+			orderPersistence.transition(orderId, OrderStatus.AUTHORIZING);
 			chargeAttempted = true;
 			paymentWebClient.charge(new ChargeRequest(savedOrder.getId(), total));
+			orderPersistence.transition(orderId, OrderStatus.PAYMENT_AUTHORIZED);
 		} catch (CompletionException | FeignException | WebClientResponseException | WebClientRequestException ex) {
+			orderPersistence.transition(orderId, OrderStatus.COMPENSATING);
 			for (StockRequest r : requests) {
 				try {
 					inventoryClient.release(r);
@@ -81,7 +88,6 @@ public class OrderService {
 							r.productId(), savedOrder.getId(), e);
 				}
 			}
-			orderPersistence.fail(savedOrder.getId());
 			if (chargeAttempted) {
 				try {
 					paymentWebClient.refund(new ChargeRequest(savedOrder.getId(), total));
@@ -90,6 +96,7 @@ public class OrderService {
 							e);
 				}
 			}
+			orderPersistence.transition(orderId, OrderStatus.FAILED);
 			Throwable cause = (ex instanceof CompletionException && ex.getCause() != null) ? ex.getCause() : ex;
 			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + cause.getMessage(), cause);
 		}

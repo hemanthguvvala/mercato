@@ -26,10 +26,13 @@ public class OrderEntity {
 
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<OrderItem> items = new ArrayList<>();
-	
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private OrderStatus status;
+
+	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<OrderStatusHistory> statusHistory = new ArrayList<>();
 
 	protected OrderEntity() {
 	}
@@ -55,16 +58,15 @@ public class OrderEntity {
 	public List<OrderItem> getItems() {
 		return items;
 	}
-	
+
 	public OrderStatus getStatus() {
 		return this.status;
 	}
-	
-	public void markFailed() {
-		this.status = OrderStatus.FAILED;
-	}
-	
-	public void markConfirmed() {
-		this.status = OrderStatus.CONFIRMED;
+
+	public void transitionTo(OrderStatus next) {
+		if (!status.canTransitionTo(next))
+			throw new IllegalStateException("Illegal order transition: " + status + " -> " + next);
+		statusHistory.add(new OrderStatusHistory(this, this.status, next));
+		this.status = next;
 	}
 }

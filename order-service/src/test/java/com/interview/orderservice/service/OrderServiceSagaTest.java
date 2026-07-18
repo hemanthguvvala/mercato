@@ -28,14 +28,19 @@ import com.interview.orderservice.client.inventory.StockRequest;
 import com.interview.orderservice.client.payment.ChargeRequest;
 import com.interview.orderservice.client.payment.PaymentWebClient;
 import com.interview.orderservice.entity.OrderEntity;
+import com.interview.orderservice.entity.OrderStatus;
 import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderFailedException;
 
 /**
  * Unit tests for the order saga in {@link OrderService} — collaborators mocked, no Spring/DB/Kafka.
- * The reserves now fan out on an Executor; the test injects a SYNCHRONOUS executor (Runnable::run)
+ * The reserves fan out on an Executor; the test injects a SYNCHRONOUS executor (Runnable::run)
  * so the parallel path runs deterministically on the calling thread.
+ *
+ * The saga now walks an explicit state machine, persisting each checkpoint via
+ * {@code orderPersistence.transition(orderId, status)}: PENDING -> RESERVING -> STOCK_RESERVED ->
+ * AUTHORIZING -> PAYMENT_AUTHORIZED -> CONFIRMED, and on failure -> COMPENSATING -> FAILED.
  */
 @ExtendWith(MockitoExtension.class)
 class OrderServiceSagaTest {
@@ -68,7 +73,7 @@ class OrderServiceSagaTest {
 	}
 
 	@Test
-	void happyPath_confirmsOrder_andNeverCompensates() {
+	void happyPath_walksStates_confirmsOrder_andNeverCompensates() {
 		when(catalogGateway.getProduct(1L)).thenReturn(new CatalogProduct(1L, "Phone", 499.0, 0L));
 		CreateOrderRequest request = new CreateOrderRequest("Hemanth", List.of(new CreateOrderRequest.Line(1L, 2)));
 
@@ -78,7 +83,15 @@ class OrderServiceSagaTest {
 		verify(paymentWebClient).charge(new ChargeRequest(100L, 998.0));
 		verify(orderPersistence).confirm(100L, 998.0);
 
-		verify(orderPersistence, never()).fail(anyLong());
+		// the state machine is walked, each checkpoint persisted in order
+		verify(orderPersistence).transition(100L, OrderStatus.RESERVING);
+		verify(orderPersistence).transition(100L, OrderStatus.STOCK_RESERVED);
+		verify(orderPersistence).transition(100L, OrderStatus.AUTHORIZING);
+		verify(orderPersistence).transition(100L, OrderStatus.PAYMENT_AUTHORIZED);
+
+		// no compensation on the happy path
+		verify(orderPersistence, never()).transition(anyLong(), eq(OrderStatus.COMPENSATING));
+		verify(orderPersistence, never()).transition(anyLong(), eq(OrderStatus.FAILED));
 		verify(inventoryClient, never()).release(any());
 		verify(paymentWebClient, never()).refund(any());
 	}
@@ -96,11 +109,11 @@ class OrderServiceSagaTest {
 		verify(inventoryClient).reserve(new StockRequest(100L, 1L, 2));
 		verify(inventoryClient).reserve(new StockRequest(100L, 2L, 1));
 		verify(orderPersistence).confirm(eq(100L), anyDouble());
-		verify(orderPersistence, never()).fail(anyLong());
+		verify(orderPersistence, never()).transition(anyLong(), eq(OrderStatus.FAILED));
 	}
 
 	@Test
-	void chargeFails_releasesStock_failsOrder_refunds_andThrows() {
+	void chargeFails_compensates_failsOrder_refunds_andThrows() {
 		when(catalogGateway.getProduct(1L)).thenReturn(new CatalogProduct(1L, "Phone", 499.0, 0L));
 		CreateOrderRequest request = new CreateOrderRequest("Hemanth", List.of(new CreateOrderRequest.Line(1L, 2)));
 		doThrow(WebClientResponseException.create(500, "Server Error", HttpHeaders.EMPTY, new byte[0], null))
@@ -109,9 +122,11 @@ class OrderServiceSagaTest {
 		assertThatThrownBy(() -> orderService.create(request))
 				.isInstanceOf(OrderFailedException.class);
 
+		// failure routes through COMPENSATING, releases stock, refunds the (attempted) charge, then FAILED
+		verify(orderPersistence).transition(100L, OrderStatus.COMPENSATING);
 		verify(inventoryClient).release(new StockRequest(100L, 1L, 2));
-		verify(orderPersistence).fail(100L);
 		verify(paymentWebClient).refund(new ChargeRequest(100L, 998.0));
+		verify(orderPersistence).transition(100L, OrderStatus.FAILED);
 		verify(orderPersistence, never()).confirm(anyLong(), anyDouble());
 	}
 
@@ -129,9 +144,10 @@ class OrderServiceSagaTest {
 				.isInstanceOf(OrderFailedException.class);
 
 		// release-ALL compensation: both items released (R39 idempotency = the non-reserved one is a no-op)
+		verify(orderPersistence).transition(100L, OrderStatus.COMPENSATING);
 		verify(inventoryClient).release(new StockRequest(100L, 1L, 2));
 		verify(inventoryClient).release(new StockRequest(100L, 2L, 1));
-		verify(orderPersistence).fail(100L);
+		verify(orderPersistence).transition(100L, OrderStatus.FAILED);
 		verify(paymentWebClient, never()).charge(any());
 		verify(orderPersistence, never()).confirm(anyLong(), anyDouble());
 	}

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.events.OrderPlaced;
 import com.interview.orderservice.entity.OrderEntity;
+import com.interview.orderservice.entity.OrderStatus;
 import com.interview.orderservice.entity.OutboxEvent;
 import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.repository.OutboxRepository;
@@ -33,7 +34,7 @@ public class OrderPersistence {
 	public void confirm(Long orderId, double total) {
 		OrderEntity order = orderRepository.findById(orderId)
 				.orElseThrow(() -> new IllegalStateException("Order " + orderId + " vanished mid-saga"));
-		order.markConfirmed();
+		order.transitionTo(OrderStatus.CONFIRMED);
 		OrderPlaced event = new OrderPlaced(order.getId(), order.getCustomerName(), total, order.getItems().size());
 		try {
 			String payload = mapper.writeValueAsString(event);
@@ -45,10 +46,10 @@ public class OrderPersistence {
 	}
 
 	@Transactional
-	public void fail(Long orderId) {
+	public void transition(Long orderId, OrderStatus newStatus) {
 		OrderEntity order = orderRepository.findById(orderId)
 				.orElseThrow(() -> new IllegalStateException("Order " + orderId + " vanished mid-saga"));
-		order.markFailed();
-
+		order.transitionTo(newStatus);
 	}
+
 }
