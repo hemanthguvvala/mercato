@@ -16,4 +16,6 @@ public interface StockReservationRepository extends JpaRepository<StockReservati
 	Optional<StockReservation> findByOrderIdAndProductId(Long orderId, Long productId);
 
 	List<StockReservation> findByStatusAndReservedAtBefore(ReservationStatus status, LocalDateTime cutoff);
+
+	List<StockReservation> findByOrderId(Long orderId);
 }
