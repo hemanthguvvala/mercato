@@ -30,6 +30,22 @@ service can run more than one replica**, so "millions of requests" is impossible
 - **Kafka / multithreading / sync / EDA — real or nominal?** Multithreading + sync: real. Kafka:
   real tool but one pipeline. EDA as an *architecture*: nominal (core flow is synchronous orchestration).
 
+## ✅ Done so far on this plan (updated 2026-07-19)
+
+Working top-to-bottom, hands-on (you code, I review). Closed so far:
+
+- **[x] F1** — H2 console gated behind `${H2_CONSOLE:false}`, off by default (order/catalog/inventory).
+- **[x] F2** — auth seed creds externalized to `${SEED_USER_PASSWORD}`/`${SEED_ADMIN_PASSWORD}`; no usable default.
+- **[x] F3** — all 5 stateful services (order, inventory, catalog, auth, review) migrated H2-file → **Neon Postgres**, database-per-service. Root cause of the "Unsupported Database: PostgreSQL" wall: the `flyway-database-postgresql` module was missing (flyway-core alone can't speak Postgres). Flyway kept.
+- **[~] F31 (part)** — **Spring Boot 3.3.5 → 3.5.15** and **Spring Cloud 2023.0.3 → 2025.0.3 (Northfields)**; 14/14 modules BUILD SUCCESS. Still open: Dependabot/OWASP/Trivy CVE-scan gate.
+- **[x] Slice 0 + Slice 1** (see `TARGET-ARCHITECTURE.md` §6) — substrate done; **order state machine** built (`OrderStatus` guard + `OrderEntity.transitionTo()` + append-only `OrderStatusHistory`), 9 unit tests green.
+- **[x] Slice 2** — durable saga: `OrderReconciler` (`@Scheduled`) recovers stuck orders forward/backward off order status + an `updatedAt` heartbeat; `confirm()` guarded inside `create()`; `server.shutdown=graceful`; **★ inventory reservation-expiry sweep** (absorbs **F4, F5, F12, F13**). 8 unit tests green.
+- **[x] Slice 3** — **F9 closed**: payment is now a durable Postgres ledger (`Payment` row per order; `unique(order_id)` is the exactly-once guard); in-memory maps deleted. 5 unit tests green.
+
+**Next:** Slice 4 — real events + outbox/inbox (EDA becomes real; also closes the reservation-`CONFIRMED` seam from Slice 2).
+
+---
+
 ## Already fixed since 2026-07-09 — do NOT redo (and say these in interviews)
 
 Reactor/parent POM · shared `events` contract module · real RS256/JWKS auth with `/payments/**`
@@ -45,11 +61,11 @@ textbook-correct** (the two classic bugs — 404-retried, breaker-trips-on-load-
 ## The fix checklist (work top-to-bottom)
 
 ### Phase 0 — Stop the bleeding (cheap, urgent)
-- [ ] **F1** 🔴 Disable the H2 web console by default + gate it
-- [ ] **F2** 🔴 Remove weak default admin credentials from committed config
+- [x] **F1** 🔴 Disable the H2 web console by default + gate it ✅
+- [x] **F2** 🔴 Remove weak default admin credentials from committed config ✅
 
 ### Phase 1 — The scale unlock
-- [ ] **F3** 🔴 Migrate the 5 stateful services from H2-file to shared Postgres
+- [x] **F3** 🔴 Migrate the 5 stateful services from H2-file to shared Postgres ✅
 
 ### Phase 2 — Make the saga crash-safe
 - [ ] **F4** 🔴 Durable saga state + reconciler; move `confirm()` inside the try
@@ -65,7 +81,7 @@ textbook-correct** (the two classic bugs — 404-retried, breaker-trips-on-load-
 
 ### Phase 4 — Fix the per-instance state that blocks HA
 - [ ] **F8** 🟠 Auth: one shared/persisted signing key (not regenerated per boot)
-- [ ] **F9** 🟠 Payment idempotency → Redis/DB with TTL (fixes double-charge + OOM)
+- [x] **F9** 🟠 Payment idempotency → Redis/DB with TTL (fixes double-charge + OOM) ✅
 - [ ] **F10** 🟠 Outbox: leader lock / `SKIP LOCKED`, bound the fetch, index `published`
 
 ### Phase 5 — Authorization
@@ -97,7 +113,7 @@ textbook-correct** (the two classic bugs — 404-retried, breaker-trips-on-load-
 - [ ] **F20** 🟡 Secure or delete the unauthenticated gRPC surface; use the locked+idempotent reserve
 - [ ] **F26** 🟡 Dev/prod Spring profiles; safe-by-default fallbacks
 - [ ] **F27** 🟡 `@RestControllerAdvice` on catalog/review/auth; fix `IllegalState→404`; stop leaking cause
-- [ ] **F31** 🟡 Dependency/CVE scanning (OWASP/Dependabot/Trivy) + Spring Boot upgrade
+- [~] **F31** 🟡 Dependency/CVE scanning (OWASP/Dependabot/Trivy) + Spring Boot upgrade — ✅ Boot/Cloud upgraded; ⏳ CVE scan pending
 - [ ] **F33** ⚪ Delete dead code (Feign `PaymentClient`, `reservePessimistic()`, unused gRPC)
 - [ ] **F34** ⚪ Plan for the single Upstash Redis SPOF
 - [ ] **F35** ⚪ Eureka eviction tuning + retry on the remaining sync edges
@@ -113,16 +129,19 @@ textbook-correct** (the two classic bugs — 404-retried, breaker-trips-on-load-
 **Where:** `order-service` `SecurityConfig.java:21` + `application.properties:10`; `catalog` `SecurityConfig.java:20` + `application.properties:14`; `inventory` `SecurityConfig.java:18` + `application.properties:14` (`spring.h2.console.enabled=${H2_CONSOLE:true}`, `permitAll`, `sa`/blank).
 **Impact:** anyone who can reach the port gets a full SQL shell — reads/writes every table, bypassing all auth above it. H2 also has RCE history via `CREATE ALIAS`. This is the real unauthenticated breach path.
 **Fix (concept — dev-only tooling off in prod):** default `H2_CONSOLE` to `false`; only enable under a `dev` profile; never `permitAll` the console in a profile that ships. Falls out naturally once F26 (profiles) lands.
+**✅ Done (2026-07-19):** `spring.h2.console.enabled=${H2_CONSOLE:false}` across order/catalog/inventory — off unless explicitly turned on.
 
 ### F2 🔴 Weak default admin credentials in committed config
 **Where:** `auth-service/application.properties:30-31` — `admin/admin123`, `hemanth/password123` as `${...:default}` (the default is used whenever the env var is unset).
 **Impact:** `java -jar` with no env → instant ADMIN, which defeats every role gate (F7) and the catalog/audit protections.
 **Fix (concept — no credentials in source):** no usable default; fail fast if the secret/user store isn't configured. Move the user store to the DB/IdP (see the auth Track B in the enterprise roadmap) so accounts aren't compile-time constants.
+**✅ Done (2026-07-19):** seed passwords are now `${SEED_USER_PASSWORD}`/`${SEED_ADMIN_PASSWORD}` with no default — the app won't hand out a known admin on a bare `java -jar`. (User store → DB/IdP is still the longer-term move.)
 
 ### F3 🔴 H2-file datastore → cannot run >1 replica of any stateful service
 **Where:** `catalog application.properties:8`, `order:23`, `inventory:8`, `auth:20`, `review:4` — all `jdbc:h2:file:./data/...`. Postgres driver is on some classpaths and URLs are `${DB_URL:...}`-overridable, but **nothing sets `DB_URL`**, and `order-service/docker-compose.yml` starts a Postgres container no app connects to.
 **Impact:** H2 file is single-process + file-locked. Two replicas either collide on the lock or diverge into private DBs. **This is the master scale blocker** — every request-serving service is pinned to exactly one instance.
 **Fix (concept — shared external DB as the precondition for stateless services):** per-service Postgres DB/schema; set `DB_URL`/creds via env; keep Flyway; add `flyway-database-postgresql` where missing (inventory has no PG driver yet). Verify with 2 replicas pointing at the same DB. Then re-check pool math: Hikari `max=10 × N replicas` must stay under Postgres `max_connections` (~100) → consider PgBouncer.
+**✅ Done (2026-07-19):** all 5 stateful services on **Neon Postgres** (database-per-service), creds via `${DB_USERNAME}`/`${DB_PASSWORD}`, Flyway migrations run clean. The "Unsupported Database: PostgreSQL" wall was **not** a version issue — it was the missing `flyway-database-postgresql` module (flyway-core can't speak PG alone); now added everywhere (catalog's PG deps also promoted out of `<scope>test</scope>`). ⏳ Still to validate: pool math / PgBouncer once we actually run `max=10 × N` replicas.
 
 ### F4 🔴 Non-durable saga compensation + no reconciler; `confirm()` outside the try
 **Where:** `order-service/service/OrderService.java:74-96` (in-memory `try/catch`, no durable saga log, no reconciler; `confirm()` at `:96` is *outside* the catch). Only `@Scheduled` job is the outbox poller.
@@ -153,6 +172,7 @@ textbook-correct** (the two classic bugs — 404-retried, breaker-trips-on-load-
 **Where:** `payment-service/service/PaymentService.java:22-23` — `ConcurrentHashMap charged` / `Set refunded`, never evicted.
 **Impact:** across replicas the double-charge guard evaporates; lost on restart; maps grow unbounded → heap OOM at scale. It's the safety net for the whole saga.
 **Fix (concept — externalized, bounded idempotency state):** move the dedup to Redis/DB keyed by a payment idempotency id, with TTL. (Even as a simulated ledger, keep the guard durable.)
+**✅ Done (2026-07-19, Slice 3):** payment now owns a Postgres DB (`paymentdb`) with a `Payment` ledger — one row per order, `unique(order_id)`. `charge`/`refund` are `@Transactional` with a fast-path dedup + the unique constraint as the true exactly-once guard; the `ConcurrentHashMap`s are deleted. Durable, replica-safe, bounded. 5 unit tests green. (Chose the DB ledger over Redis+TTL — it's the system of record, so rows are kept, not expired.)
 
 ### F10 🟠 Outbox poller not multi-instance safe; unbounded fetch; no index
 **Where:** `OutboxPoller.java:35-48` (`@Scheduled` on every replica, no lock; serial blocking `send().get()`); `OutboxRepository.java:13` (`findByPublishedFalse()` — no limit); `OutboxEvent.java:12-25` (no index on `published`, no purge).
@@ -260,9 +280,10 @@ textbook-correct** (the two classic bugs — 404-retried, breaker-trips-on-load-
 **Fix (concept — least exposure + real probes):** gate metrics/actuator behind auth or a separate management port; liveness/readiness on all services with readiness indicators for DB/Kafka/Redis; decide Swagger exposure per profile.
 
 ### F31 🟡 Stale framework + no dependency scanning
-**Where:** Spring Boot **3.3.5** (Oct 2024, `pom.xml:11`); `.github/workflows/ci.yml` is build+test only — no OWASP Dependency-Check/Dependabot/CodeQL/Snyk/Trivy, no `dependabot.yml`.
-**Impact:** unpatched 3.3.x CVEs with no detection.
-**Fix (concept — patch cadence + build-time scanning):** bump to a current 3.3.x/3.4.x; add Dependabot + a CVE scan gate + image scan (F-deploy).
+**Where:** ~~Spring Boot **3.3.5** (Oct 2024, `pom.xml:11`)~~; `.github/workflows/ci.yml` is build+test only — no OWASP Dependency-Check/Dependabot/CodeQL/Snyk/Trivy, no `dependabot.yml`.
+**Impact:** unpatched CVEs with no detection.
+**Fix (concept — patch cadence + build-time scanning):** bump to a current release; add Dependabot + a CVE scan gate + image scan (F-deploy).
+**✅ Partly done (2026-07-19):** upgraded to **Spring Boot 3.5.15** + **Spring Cloud 2025.0.3 (Northfields)** — 14/14 modules build (only 2 deprecation warnings left: `@MockBean`→`@MockitoBean`, `Specification.where`). ⏳ Still open: Dependabot + OWASP/Trivy CVE-scan gate in CI.
 
 ### F32 ⚪ No cache on hot reads
 **Where:** catalog by-id is cached (`ProductService.java:42`, 60s) but **list/search aren't** (`:47,:113`); review has no cache + no rating aggregate (reloads full review set per product page).

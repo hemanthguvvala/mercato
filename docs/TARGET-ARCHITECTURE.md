@@ -11,6 +11,8 @@
 > **Scope now = the core three:** `order` (orchestrator), `inventory` + `payment` (participants),
 > plus an order **read model** (CQRS). New bounded contexts (cart/search/shipping/pricing) are
 > designed at the end but **deferred to the widen phase**.
+>
+> **Progress (2026-07-19):** Slices 0–3 ✅ · **Slice 4 = next.** See §6.
 
 ---
 
@@ -98,10 +100,10 @@ Per-service schema ownership stays sacred: **no JPA relationship crosses a servi
 services are referenced by **ID**, never a foreign key.
 
 ### order-service (orchestrator) — Postgres `orderdb`
-- **`Order`** (aggregate root): add `status` enum `{CREATED, RESERVING, STOCK_RESERVED, AUTHORIZING, PAYMENT_AUTHORIZED, CONFIRMED, COMPENSATING, FAILED, CANCELLED}`, keep `@Version`, `idempotencyKey`, `customerId` (by ID).
+- **`Order`** (aggregate root): ✅ **built (Slice 1)** — `status` enum `{PENDING, RESERVING, STOCK_RESERVED, AUTHORIZING, PAYMENT_AUTHORIZED, CONFIRMED, COMPENSATING, FAILED, CANCELLED}` with a `canTransitionTo` guard + `transitionTo()`; keep `@Version`, `idempotencyKey`, `customerId` (by ID). *(Start state is `PENDING`, not `CREATED` — matches the existing saga's PENDING-first commit.)*
 - **`OrderItem`** (existing `@OneToMany`).
-- **`OrderStatusHistory`** (new, append-only): `orderId, from, to, reason, at` — audit + debugging of the state machine.
-- **`SagaStep`** (new): `orderId, step {RESERVE, AUTHORIZE}, state {PENDING, DONE, COMPENSATED, FAILED}, attempts, lastError, updatedAt` — the reconciler's source of truth for what to finish/undo.
+- **`OrderStatusHistory`** (new, append-only): ✅ **built (Slice 1)** — `orderId, fromStatus, toStatus, changedAt` (add a `reason` column when the reconciler needs it) — audit + debugging of the state machine.
+- **`SagaStep`** — *considered, not built (Slice 2 decision).* We reconcile off the order **`status` + an `updatedAt` heartbeat** instead: the steps are coarse and downstream ops are idempotent, so status-level recovery is enough, and `OrderStatusHistory` already records every step. Revisit a per-step `SagaStep` log only if finer-grained partial-step recovery is ever needed.
 - **`OutboxEvent`** (improve): index on `published`, retention/purge job, `SKIP LOCKED` claim, optional `traceparent` column (for F15).
 - **`IdempotencyRecord`** (fix): store the **terminal outcome** (success id or failure) so a failed order doesn't poison the key.
 
@@ -112,7 +114,7 @@ services are referenced by **ID**, never a foreign key.
 - **`OutboxEvent`** (new): emits `StockReserved` / `StockRejected` / `StockReleased`.
 
 ### payment-service (participant) — Postgres `paymentdb` (was in-memory!)
-- **`Payment`** (new, the real fix for F9): `id, orderId, idempotencyKey (unique), amount, status {AUTHORIZED, CAPTURED, DECLINED, REFUNDED}, createdAt` — durable ledger, not a `ConcurrentHashMap`.
+- **`Payment`** ✅ **built (Slice 3)** — `id, orderId (unique), amount, status {AUTHORIZED, REFUNDED}, createdAt` — durable ledger, not a `ConcurrentHashMap`. (`orderId` is the idempotency key; status set kept minimal — `CAPTURED`/`DECLINED` deferred until a step needs them.)
 - **`InboxMessage`** + **`OutboxEvent`**: emits `PaymentAuthorized` / `PaymentDeclined` / `PaymentRefunded`.
 
 ### order read model — Postgres `orderquerydb` (own schema; own service in the widen phase)
@@ -159,10 +161,10 @@ Still done as **standalone** fixes (not part of the redesign): F7 authz, F11 rat
 
 Each slice is buildable, reviewable, and teaches **one core concept**. We do them in order.
 
-- **Slice 0 — Substrate & quick wins.** F1 (H2 console off), F2 (default creds), then F3 (Postgres for order/inventory/payment; keep Flyway). *Concept: shared DB as the precondition for everything below.* Verify: 2 replicas of catalog share one DB.
-- **Slice 1 — Order state machine.** `status` enum + transitions + `OrderStatusHistory`. *Concept: aggregate + explicit state machine (no more implicit status).*
-- **Slice 2 — Durable saga + reconciler.** `SagaStep` log, `confirm()` inside the protected region, `@Scheduled` reconciler, graceful shutdown. *Concept: durable saga / process manager + reconciliation.* **This is the crown-jewel interview story.**
-- **Slice 3 — Payment as a durable ledger.** `Payment` entity + DB idempotency; delete the in-memory maps. *Concept: idempotent ledger, exactly-once effect.*
+- **Slice 0 — Substrate & quick wins.** ✅ **DONE (2026-07-19).** F1 (H2 console off), F2 (default creds), F3 (all **5 stateful services** → **Neon Postgres**, database-per-service; Flyway kept via `flyway-database-postgresql`). Bonus: Boot 3.5.15 / Cloud 2025.0.3 upgrade (F31). *Concept: shared DB as the precondition for everything below.* *(payment is still in-memory → its durable ledger is Slice 3, not Slice 0.)*
+- **Slice 1 — Order state machine.** ✅ **DONE (2026-07-19).** `OrderStatus` enum + `canTransitionTo` guard + `OrderEntity.transitionTo()` writing append-only `OrderStatusHistory` (V6 migration); saga now walks PENDING→RESERVING→STOCK_RESERVED→AUTHORIZING→PAYMENT_AUTHORIZED→CONFIRMED, and on failure →COMPENSATING→FAILED. 9 unit tests green. *Concept: aggregate + explicit state machine (no more implicit status).*
+- **Slice 2 — Durable saga + reconciler.** ✅ **DONE (2026-07-19).** `OrderReconciler` (`@Scheduled`) recovers stuck orders off **order status + an `updatedAt` heartbeat** (chosen over a separate `SagaStep` table). Point-of-no-return split: pre-payment → compensate (backward), `PAYMENT_AUTHORIZED` → `confirm()` (forward); `confirm()` guarded inside `create()`; `server.shutdown=graceful` added (F4/F5/F12/F13). **+ ★ inventory reservation expiry** — `ReservationExpirySweep` releases abandoned `RESERVED` holds after a TTL (paid ones excluded once Slice 4 marks them `CONFIRMED`). 8 unit tests green; full order+inventory suites green on Boot 3.5.15. *Concept: durable saga / process manager + reconciliation.* **The crown-jewel interview story.**
+- **Slice 3 — Payment as a durable ledger.** ✅ **DONE (2026-07-19).** `Payment` entity + `PaymentRepository`; `charge`/`refund` `@Transactional` on the ledger with `unique(order_id)` as the exactly-once guard; in-memory maps deleted (F9). 5 unit tests green. *Concept: idempotent ledger, exactly-once effect.*
 - **Slice 4 — Real events + outbox/inbox.** Expand `events`; outbox on payment+inventory; inbox dedup on every consumer. *Concept: event-carried state transfer, inbox/outbox, at-least-once made safe.* **← EDA becomes real here.**
 - **Slice 5 — CQRS read model.** `OrderView` projector from events; `GET /orders*` reads it; per-customer authz + pagination. *Concept: CQRS read/write split.*
 - **Slice 6 — Resilience on the money path.** CB+TimeLimiter on payment+inventory; gateway timeout+CB; rate-limit key fix. *Concept: bulkhead the critical path; stop the cascade.*

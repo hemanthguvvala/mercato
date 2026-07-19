@@ -8,6 +8,11 @@
 > Effort tag: **[local]** closeable & verifiable on this machine ·
 > **[infra]** needs a real cloud/datastore/cluster to do or prove ·
 > **[ops]** a process/discipline, not just code
+>
+> **Update (2026-07-19):** the substrate migration has begun — all 5 stateful services are now on
+> **Neon Postgres** (Slice 0 / F3) and the stack is on **Spring Boot 3.5.15 / Cloud 2025.0.3**. The
+> DB-tier rows below are refreshed; the infra/ops/deployment rows still stand as written. Live,
+> code-accurate plan: [`PRODUCTION-FIX-PLAN.md`](./PRODUCTION-FIX-PLAN.md).
 
 ## How to read this (the 3 tiers)
 
@@ -47,8 +52,8 @@ precisely is stronger in an interview than claiming "production-ready."
 ## B. Data & persistence
 | Factor | Status | Effort | Note |
 |---|---|---|---|
-| Real clustered DB (Postgres) | ✗ | [infra] | H2 today — the substrate blocker. |
-| Migrations (Flyway) | ✓ | — | V1–V5. |
+| Real clustered DB (Postgres) | ✓ | [infra] | **Done 2026-07-19** — all 5 stateful services on **Neon Postgres**, database-per-service (Slice 0 / F3). The H2 single-replica substrate blocker is removed. |
+| Migrations (Flyway) | ✓ | — | V1–V6 (V6 = `order_status_history`); `flyway-database-postgresql` module now on the classpath so Flyway can speak Postgres. |
 | Backups + PITR | ✗ | [infra] | |
 | Read replicas / conn proxy (PgBouncer) | ✗ | [infra] | |
 | Data retention / archival | ✗ | [local] | Outbox & audit tables grow forever. |

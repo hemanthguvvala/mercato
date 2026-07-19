@@ -13,6 +13,10 @@
 >
 > **Companions:** `PRODUCTION-GAPS.md` (the deploy/ops backlog + Phase 0–6), the deep
 > concurrency work lives in the separate `kafka_multithreading` "Transaction Risk Engine" project.
+>
+> **Update (2026-07-19):** the runtime substrate is now **Neon Postgres** (all 5 stateful services) on
+> **Spring Boot 3.5.15**. The `[local]` tracks below still build/test on H2 via `@DataJpaTest`, but the
+> *running* stack is Postgres. Live hardening plan: [`PRODUCTION-FIX-PLAN.md`](./PRODUCTION-FIX-PLAN.md) · [`TARGET-ARCHITECTURE.md`](./TARGET-ARCHITECTURE.md).
 
 ---
 
@@ -98,7 +102,7 @@ Reference table: pattern → where it lives in Mercato → the lesson. **✓ = a
 | BFF | ✓ | `storefront` (Next.js) in front of the gateway |
 | Choreography saga | + | Track E |
 | CQRS (read/write split) | + | review ratings read model / catalog search |
-| Event Sourcing (lite, optional) | + | discuss; maybe order status history |
+| Event Sourcing (lite) | ✓ (lite) | **`OrderStatusHistory`** append-only transition log built (Slice 1) — the "audit via status history" lite version; full event sourcing stays optional |
 
 **Application / GoF patterns**
 | Pattern | Status | Where |
