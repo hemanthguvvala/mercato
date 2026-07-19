@@ -1,5 +1,7 @@
 package com.interview.inventoryservice.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -22,6 +24,8 @@ public class StockReservation {
 	@Enumerated(EnumType.STRING)
 	private ReservationStatus status;
 
+	private LocalDateTime reservedAt;
+
 	protected StockReservation() {
 	}
 
@@ -30,6 +34,7 @@ public class StockReservation {
 		this.productId = productId;
 		this.quantity = quantity;
 		this.status = status;
+		this.reservedAt = LocalDateTime.now();
 	}
 
 	public Long getId() {
@@ -54,5 +59,9 @@ public class StockReservation {
 
 	public void setStatus(ReservationStatus status) {
 		this.status = status;
+	}
+
+	public LocalDateTime getReservedAt() {
+		return reservedAt;
 	}
 }

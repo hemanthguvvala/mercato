@@ -100,7 +100,12 @@ public class OrderService {
 			Throwable cause = (ex instanceof CompletionException && ex.getCause() != null) ? ex.getCause() : ex;
 			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + cause.getMessage(), cause);
 		}
-		orderPersistence.confirm(savedOrder.getId(), total);
+		try {
+			orderPersistence.confirm(savedOrder.getId(), total);
+		} catch (Exception e) {
+			log.error("Order {} is paid (PAYMENT_AUTHORIZED) but confirm() failed — leaving it for the "
+					+ "reconciler to finish forward; NOT compensating", orderId, e);
+		}
 		return toResponse(savedOrder);
 	}
 

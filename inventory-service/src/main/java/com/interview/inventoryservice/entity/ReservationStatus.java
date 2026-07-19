@@ -1,5 +1,5 @@
 package com.interview.inventoryservice.entity;
 
 public enum ReservationStatus {
-	RESERVED, RELEASED
+	RESERVED, RELEASED, CONFIRMED
 }

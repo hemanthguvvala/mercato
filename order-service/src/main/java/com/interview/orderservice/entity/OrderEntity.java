@@ -1,5 +1,6 @@
 package com.interview.orderservice.entity;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,12 +35,15 @@ public class OrderEntity {
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<OrderStatusHistory> statusHistory = new ArrayList<>();
 
+	private LocalDateTime updatedAt;
+
 	protected OrderEntity() {
 	}
 
 	public OrderEntity(String customerName) {
 		this.customerName = customerName;
 		this.status = OrderStatus.PENDING;
+		this.updatedAt = LocalDateTime.now();
 	}
 
 	public void addItem(OrderItem item) {
@@ -68,5 +72,10 @@ public class OrderEntity {
 			throw new IllegalStateException("Illegal order transition: " + status + " -> " + next);
 		statusHistory.add(new OrderStatusHistory(this, this.status, next));
 		this.status = next;
+		this.updatedAt = LocalDateTime.now();
+	}
+
+	public LocalDateTime getUpdatedAt() {
+		return updatedAt;
 	}
 }
