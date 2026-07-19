@@ -24,13 +24,13 @@ public class AnalyticsListener {
 	@KafkaListener(topics = "${app.kafka.order-events-topic}")
 	public void onOrderPlace(OrderPlaced orderPlacedEvent) {
 		String key = "analytics:OrderPlaced:" + orderPlacedEvent.orderId();
-		if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
+		Boolean claimed = redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24));
+		if (!Boolean.TRUE.equals(claimed)) {
 			log.debug("Duplicate OrderPlaced {} — skipping", orderPlacedEvent.orderId());
 			return;
 		}
 		Long orders = redisTemplate.opsForValue().increment("analytics:orders");
 		Double revenue = redisTemplate.opsForValue().increment("analytics:revenue", orderPlacedEvent.totalAmount());
 		log.info("Analytics: {} orders, total revenue {}", orders, revenue);
-		redisTemplate.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24));
 	}
 }
