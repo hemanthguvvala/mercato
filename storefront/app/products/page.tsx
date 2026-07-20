@@ -1,32 +1,23 @@
-type Product = {
-    id: number;
-    name: string;
-    price: number;
-    version: number;
-};
+import { getProducts } from "@/lib/api/products";
+import ProductCard from "@/components/ProductCard";
 
-export default async function ProductsPage(){
-    const res = await fetch("http://localhost:8090/products", {
-        cache: "no-store",
-    });
+export const metadata = { title: "Products — Mercato" };
 
-    if(!res.ok){
-        throw new Error(`Catalog request failed: ${res.status}`);
-    }
+export default async function ProductsPage() {
+  const products = await getProducts();
 
-    const products:Product[] = await res.json();
-
-    return (
-        <main className="mx-auto max-w-3x1 p-8">
-            <h1 className="mb-6 text-2x1 font-semibold">Products</h1>
-            <ul className="space-y-2">
-                {products.map( (product) => (
-                    <li key= {product.id} className="flex justify-between border-b py-2">
-                        <span>{product.name}</span>
-                        <span>₹{product.price}</span>
-                    </li>
-                ) )}
-            </ul>
-        </main>
-    )
+  return (
+    <div className="mx-auto max-w-5xl p-8">
+      <h1 className="mb-6 text-2xl font-semibold">Products</h1>
+      {products.length === 0 ? (
+        <p className="text-zinc-500">No products yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
