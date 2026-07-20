@@ -23,7 +23,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import com.interview.orderservice.client.catalog.CatalogGateway;
 import com.interview.orderservice.client.catalog.CatalogProduct;
-import com.interview.orderservice.client.inventory.InventoryClient;
+import com.interview.orderservice.client.inventory.InventoryGateway;
 import com.interview.orderservice.client.inventory.StockRequest;
 import com.interview.orderservice.client.payment.ChargeRequest;
 import com.interview.orderservice.client.payment.PaymentWebClient;
@@ -33,6 +33,8 @@ import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderFailedException;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 /**
  * Unit tests for the order saga in {@link OrderService} — collaborators mocked, no Spring/DB/Kafka.
  * The reserves fan out on an Executor; the test injects a SYNCHRONOUS executor (Runnable::run)
@@ -41,6 +43,9 @@ import com.interview.orderservice.web.OrderFailedException;
  * The saga now walks an explicit state machine, persisting each checkpoint via
  * {@code orderPersistence.transition(orderId, status)}: PENDING -> RESERVING -> STOCK_RESERVED ->
  * AUTHORIZING -> PAYMENT_AUTHORIZED -> CONFIRMED, and on failure -> COMPENSATING -> FAILED.
+ *
+ * Inventory is reached through {@link InventoryGateway} (the resilience boundary, mocked here);
+ * a real (unmocked) MeterRegistry captures the business metrics without extra setup.
  */
 @ExtendWith(MockitoExtension.class)
 class OrderServiceSagaTest {
@@ -52,7 +57,7 @@ class OrderServiceSagaTest {
 	@Mock
 	PaymentWebClient paymentWebClient;
 	@Mock
-	InventoryClient inventoryClient;
+	InventoryGateway inventoryGateway;
 	@Mock
 	OrderPersistence orderPersistence;
 
@@ -62,7 +67,7 @@ class OrderServiceSagaTest {
 	void setUp() {
 		// synchronous executor: CompletableFuture.runAsync runs each reserve on the calling thread
 		orderService = new OrderService(orderRepository, catalogGateway, paymentWebClient,
-				inventoryClient, orderPersistence, Runnable::run);
+				inventoryGateway, orderPersistence, Runnable::run, new SimpleMeterRegistry());
 
 		// savePending returns the same order with a generated id (100) stamped on
 		when(orderPersistence.savePending(any(OrderEntity.class))).thenAnswer(inv -> {
@@ -79,7 +84,7 @@ class OrderServiceSagaTest {
 
 		orderService.create(request);
 
-		verify(inventoryClient).reserve(new StockRequest(100L, 1L, 2));
+		verify(inventoryGateway).reserve(new StockRequest(100L, 1L, 2));
 		verify(paymentWebClient).charge(new ChargeRequest(100L, 998.0));
 		verify(orderPersistence).confirm(100L, 998.0);
 
@@ -92,7 +97,7 @@ class OrderServiceSagaTest {
 		// no compensation on the happy path
 		verify(orderPersistence, never()).transition(anyLong(), eq(OrderStatus.COMPENSATING));
 		verify(orderPersistence, never()).transition(anyLong(), eq(OrderStatus.FAILED));
-		verify(inventoryClient, never()).release(any());
+		verify(inventoryGateway, never()).release(any());
 		verify(paymentWebClient, never()).refund(any());
 	}
 
@@ -106,8 +111,8 @@ class OrderServiceSagaTest {
 		orderService.create(request);
 
 		// BOTH line items reserved (the fan-out), then the order confirmed
-		verify(inventoryClient).reserve(new StockRequest(100L, 1L, 2));
-		verify(inventoryClient).reserve(new StockRequest(100L, 2L, 1));
+		verify(inventoryGateway).reserve(new StockRequest(100L, 1L, 2));
+		verify(inventoryGateway).reserve(new StockRequest(100L, 2L, 1));
 		verify(orderPersistence).confirm(eq(100L), anyDouble());
 		verify(orderPersistence, never()).transition(anyLong(), eq(OrderStatus.FAILED));
 	}
@@ -124,7 +129,7 @@ class OrderServiceSagaTest {
 
 		// failure routes through COMPENSATING, releases stock, refunds the (attempted) charge, then FAILED
 		verify(orderPersistence).transition(100L, OrderStatus.COMPENSATING);
-		verify(inventoryClient).release(new StockRequest(100L, 1L, 2));
+		verify(inventoryGateway).release(new StockRequest(100L, 1L, 2));
 		verify(paymentWebClient).refund(new ChargeRequest(100L, 998.0));
 		verify(orderPersistence).transition(100L, OrderStatus.FAILED);
 		verify(orderPersistence, never()).confirm(anyLong(), anyDouble());
@@ -138,15 +143,15 @@ class OrderServiceSagaTest {
 				List.of(new CreateOrderRequest.Line(1L, 2), new CreateOrderRequest.Line(2L, 1)));
 		// product 2's reserve blows up; the fan-out surfaces it wrapped in a CompletionException
 		doThrow(new RuntimeException("inventory unavailable"))
-				.when(inventoryClient).reserve(new StockRequest(100L, 2L, 1));
+				.when(inventoryGateway).reserve(new StockRequest(100L, 2L, 1));
 
 		assertThatThrownBy(() -> orderService.create(request))
 				.isInstanceOf(OrderFailedException.class);
 
 		// release-ALL compensation: both items released (R39 idempotency = the non-reserved one is a no-op)
 		verify(orderPersistence).transition(100L, OrderStatus.COMPENSATING);
-		verify(inventoryClient).release(new StockRequest(100L, 1L, 2));
-		verify(inventoryClient).release(new StockRequest(100L, 2L, 1));
+		verify(inventoryGateway).release(new StockRequest(100L, 1L, 2));
+		verify(inventoryGateway).release(new StockRequest(100L, 2L, 1));
 		verify(orderPersistence).transition(100L, OrderStatus.FAILED);
 		verify(paymentWebClient, never()).charge(any());
 		verify(orderPersistence, never()).confirm(anyLong(), anyDouble());

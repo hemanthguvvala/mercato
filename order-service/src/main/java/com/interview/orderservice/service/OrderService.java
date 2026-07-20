@@ -15,7 +15,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import com.interview.orderservice.client.catalog.CatalogGateway;
 import com.interview.orderservice.client.catalog.CatalogProduct;
-import com.interview.orderservice.client.inventory.InventoryClient;
+import com.interview.orderservice.client.inventory.InventoryGateway;
 import com.interview.orderservice.client.inventory.StockRequest;
 import com.interview.orderservice.client.payment.ChargeRequest;
 import com.interview.orderservice.client.payment.PaymentWebClient;
@@ -26,9 +26,13 @@ import com.interview.orderservice.repository.OrderRepository;
 import com.interview.orderservice.web.OrderDtos.CreateOrderRequest;
 import com.interview.orderservice.web.OrderDtos.OrderResponse;
 import com.interview.orderservice.web.OrderFailedException;
+import com.interview.orderservice.web.PaymentDeclinedException;
+import com.interview.orderservice.web.PaymentUnavailableException;
 import com.interview.orderservice.web.ResourceNotFoundException;
 
 import feign.FeignException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 @Service
 public class OrderService {
@@ -38,22 +42,25 @@ public class OrderService {
 	private final OrderRepository orderRepository;
 	private final CatalogGateway catalogGateway;
 	private final PaymentWebClient paymentWebClient;
-	private final InventoryClient inventoryClient;
+	private final InventoryGateway inventoryGateway;
 	private final OrderPersistence orderPersistence;
 	private final Executor reservationExecutor;
+	private final MeterRegistry meterRegistry;
 
 	public OrderService(OrderRepository orderRepository, CatalogGateway catalogGateway,
-			PaymentWebClient paymentWebClient, InventoryClient inventoryGateWay, OrderPersistence orderPersistence,
-			@Qualifier("reservationExecutor") Executor executor) {
+			PaymentWebClient paymentWebClient, InventoryGateway inventoryGateway, OrderPersistence orderPersistence,
+			@Qualifier("reservationExecutor") Executor executor, MeterRegistry meterRegistry) {
 		this.catalogGateway = catalogGateway;
 		this.orderRepository = orderRepository;
 		this.paymentWebClient = paymentWebClient;
-		this.inventoryClient = inventoryGateWay;
+		this.inventoryGateway = inventoryGateway;
 		this.orderPersistence = orderPersistence;
 		this.reservationExecutor = executor;
+		this.meterRegistry = meterRegistry;
 	}
 
 	public OrderResponse create(CreateOrderRequest request) {
+		Timer.Sample sample = Timer.start(meterRegistry);
 		boolean chargeAttempted = false;
 		OrderEntity order = new OrderEntity(request.customerName());
 		for (CreateOrderRequest.Line line : request.lines()) {
@@ -69,7 +76,7 @@ public class OrderService {
 		try {
 			orderPersistence.transition(orderId, OrderStatus.RESERVING);
 			CompletableFuture<?>[] futures = requests.stream()
-					.map(req -> CompletableFuture.runAsync(() -> inventoryClient.reserve(req), reservationExecutor))
+					.map(req -> CompletableFuture.runAsync(() -> inventoryGateway.reserve(req), reservationExecutor))
 					.toArray(CompletableFuture[]::new);
 			CompletableFuture.allOf(futures).join();
 			orderPersistence.transition(orderId, OrderStatus.STOCK_RESERVED);
@@ -77,11 +84,12 @@ public class OrderService {
 			chargeAttempted = true;
 			paymentWebClient.charge(new ChargeRequest(savedOrder.getId(), total));
 			orderPersistence.transition(orderId, OrderStatus.PAYMENT_AUTHORIZED);
-		} catch (CompletionException | FeignException | WebClientResponseException | WebClientRequestException ex) {
+		} catch (CompletionException | FeignException | WebClientResponseException | WebClientRequestException
+				| PaymentDeclinedException | PaymentUnavailableException ex) {
 			orderPersistence.transition(orderId, OrderStatus.COMPENSATING);
 			for (StockRequest r : requests) {
 				try {
-					inventoryClient.release(r);
+					inventoryGateway.release(r);
 				} catch (Exception e) {
 					log.error(
 							"Compensation: failed to release stock for product {} on order {} — MANUAL RECOVERY NEEDED",
@@ -97,6 +105,8 @@ public class OrderService {
 				}
 			}
 			orderPersistence.transition(orderId, OrderStatus.FAILED);
+			sample.stop(meterRegistry.timer("orders.processing", "outcome", "failed"));
+			meterRegistry.counter("orders.placed", "outcome", "failed").increment();
 			Throwable cause = (ex instanceof CompletionException && ex.getCause() != null) ? ex.getCause() : ex;
 			throw new OrderFailedException("Order " + savedOrder.getId() + " failed: " + cause.getMessage(), cause);
 		}
@@ -106,6 +116,8 @@ public class OrderService {
 			log.error("Order {} is paid (PAYMENT_AUTHORIZED) but confirm() failed — leaving it for the "
 					+ "reconciler to finish forward; NOT compensating", orderId, e);
 		}
+		sample.stop(meterRegistry.timer("orders.processing", "outcome", "confirmed"));
+		meterRegistry.counter("orders.placed", "outcome", "confirmed").increment();
 		return toResponse(savedOrder);
 	}
 
