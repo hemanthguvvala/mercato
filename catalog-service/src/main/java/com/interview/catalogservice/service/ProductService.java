@@ -45,7 +45,11 @@ public class ProductService {
 	}
 
 	public List<Product> search(String name) {
-		return repository.findByNameIgnoreCase(name).stream().map(this::toDto).toList();
+		if (name == null || name.isBlank()) {
+			return repository.findAll().stream().map(this::toDto).toList();
+		} else {
+			return repository.findByNameIgnoreCase(name).stream().map(this::toDto).toList();
+		}
 	}
 
 	public Product create(Product productRequest) {
@@ -109,7 +113,7 @@ public class ProductService {
 				.toList();
 		return new ProductWithCategories(p.getId(), p.getName(), p.getPrice(), cats);
 	}
-	
+
 	@Transactional(readOnly = true)
 	public List<Product> search(ProductSearchCriteria criteria) {
 		Specification<ProductEntity> spec = Specification.where(null);
